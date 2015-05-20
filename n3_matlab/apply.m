@@ -33,8 +33,8 @@ reshape_b = @(B) squeeze(permute(B, [4 1 2 3]));
 %--------------------------------------------------
 % Layer 1 - CNN
 %--------------------------------------------------
-load conv1Weight
-load conv1Bias
+load Parameters/conv1Weight
+load Parameters/conv1Bias
 
 conv1Weight = reshape_conv_w(conv1Weight);
 conv1Bias = reshape_b(conv1Bias);
@@ -42,8 +42,8 @@ conv1Bias = reshape_b(conv1Bias);
 %--------------------------------------------------
 % Layer 2 - CNN
 %--------------------------------------------------
-load conv2Weight
-load conv2Bias
+load Parameters/conv2Weight
+load Parameters/conv2Bias
 
 conv2Weight = reshape_conv_w(conv2Weight);
 conv2Bias = reshape_b(conv2Bias);
@@ -51,8 +51,8 @@ conv2Bias = reshape_b(conv2Bias);
 %--------------------------------------------------
 % Layer 3 - CNN
 %--------------------------------------------------
-load conv3Weight
-load conv3Bias
+load Parameters/conv3Weight
+load Parameters/conv3Bias
 
 conv3Weight = reshape_conv_w(conv3Weight);
 conv3Bias = reshape_b(conv3Bias);
@@ -60,10 +60,8 @@ conv3Bias = reshape_b(conv3Bias);
 %--------------------------------------------------
 % Layer 4 - IP
 %--------------------------------------------------
-load ip1Weight
-load ip1Bias
-load ip2Weight
-load ip2Bias
+load Parameters/ip1Weight
+load Parameters/ip1Bias
 
 % -> (width, height, nInChannels, nOutChannels)
 %    (5, 5, 48, 200)
@@ -79,6 +77,9 @@ ip1Bias = squeeze(ip1Bias);
 %--------------------------------------------------
 % Layer 5 - IP
 %--------------------------------------------------
+load Parameters/ip2Weight
+load Parameters/ip2Bias
+
 ip2Weight = reshape(ip2Weight, [2 200]);
 ip2Weight = permute(ip2Weight, [2 1]);
 assert(size(ip2Weight,2) == 2);
@@ -86,9 +87,10 @@ assert(size(ip2Weight,2) == 2);
 ip2Bias = squeeze(ip2Bias);
 
 
-%-------------------------------------------------------------------------------
+
+%===============================================================================
 % Apply filters
-%-------------------------------------------------------------------------------
+%===============================================================================
 
 tic
 
