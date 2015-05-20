@@ -80,10 +80,10 @@ ip1Bias = squeeze(ip1Bias);
 % Layer 5 - IP
 %--------------------------------------------------
 ip2Weight = reshape(ip2Weight, [2 200]);
-ip2Weight = ip2Weight(2,:);  % 2 := probability of target class
-ip2Bias = squeeze(ip2Bias);
-ip2Bias = ip2Bias(2);        % 2 := probability of target class
+ip2Weight = permute(ip2Weight, [2 1]);
+assert(size(ip2Weight,2) == 2);
 
+ip2Bias = squeeze(ip2Bias);
 
 
 %-------------------------------------------------------------------------------
@@ -133,16 +133,19 @@ X4 = max(X4,0);  % evidently I left a RELU after IP1
 %--------------------------------------------------
 fprintf('[%s]: Applying IP layer 2\n', mfilename);
 %--------------------------------------------------
-assert(isvector(ip2Weight));
-X5 = X4(:,:,1) * ip2Weight(1);
+X5neg = X4(:,:,1) * ip2Weight(1,1);
+X5pos = X4(:,:,1) * ip2Weight(1,2);
 for ii = 2:size(X4,3)
-    X5 = X5 + X4(:,:,ii) * ip2Weight(ii);
+    X5neg = X5neg + X4(:,:,ii) * ip2Weight(ii,1);
+    X5pos = X5pos + X4(:,:,ii) * ip2Weight(ii,2);
 end
-X5 = X5 + ip2Bias;
+X5neg = X5neg + ip2Bias(1);
+X5pos = X5pos + ip2Bias(2);
 
 % softmax
-% MJP: this isn't quite right, unfortunately
-%X5 = softmax(X5);
+mv = max([ X5neg(:) ; X5pos(:) ]);  % subtract max val for numerical stability.
+                                    % (ref: Caffe's softmax_layer.cpp )
+Ypos = exp(X5pos - mv) ./ ( exp(X5pos - mv) + exp(X5neg - mv) );
 
 toc
 
