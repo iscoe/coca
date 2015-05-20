@@ -105,15 +105,20 @@ def get_args():
 
 
 
-def _eval_cube(net, X, M, batchDim, extractFeat=True):
+def _eval_cube(net, X, M, batchDim, extractFeat=''):
     """
+      PARAMETERS:
+        net      - a Caffe network object
+        X        - A 3d tensor of data to evaluate
+        M        - A boolean 3d tensor mask; 1 := evaluate the corresponding pixel
+        batchDim - Length 2 vector of tile [width,height].  
+      
       RETURN VALUES:
-        Yhat  -  a tensor with dimensions (#classes, ...)   where "..." denotes data cube dimensions
+        Yhat   - a tensor with dimensions (#classes, ...)   where "..." denotes data cube dimensions
         Xprime - a tensor with dimensions (#features, ...)  where "..." denotes data cube dimensions
-    Dimensions of 
     """
     
-    assert(batchDim[2] == batchDim[3])  # tiles must be square
+    assert(batchDim[2] == batchDim[3])  # currently we assume tiles are square
 
     #--------------------------------------------------
     # initialize variables and storage needed in the processing loop below 
@@ -123,18 +128,19 @@ def _eval_cube(net, X, M, batchDim, extractFeat=True):
     yDummy = np.zeros((batchDim[0],), dtype=np.float32) 
     cnnTime = 0.0                                 # time spent doing core CNN operations
     nClasses = net.blobs['prob'].data.shape[1]    # *** Assumes a layer called "prob"
-    nFeats = net.blobs['ip1'].data.shape[1]       # *** Assumes there is an inner product layer called "ip1"
 
     # allocate memory for return values
     Yhat = -1*np.ones((nClasses, X.shape[0], X.shape[1], X.shape[2]))
-    if extractFeat:
+    if len(extractFeat):
+        nFeats = net.blobs[extractFeat].data.shape[1] 
         Xprime = np.zeros((nFeats, X.shape[0], X.shape[1], X.shape[2]))
     else:
         Xprime = None
         
     print "[deploy]: Yhat shape: %s" % str(Yhat.shape)
     if Xprime is not None:
-        print "[deploy]: Xprime shape: %s" % str(Xprime.shape)
+        print "[deploy]: Extracting features from layer: %s" % extractFeat
+        print "[deploy]: Xprime shape:                   %s" % str(Xprime.shape)
     sys.stdout.flush()
 
     #--------------------------------------------------
@@ -172,7 +178,7 @@ def _eval_cube(net, X, M, batchDim, extractFeat=True):
         # for features: net.blobs['ip1'].data  should be (100,200,1,1) for batch size 100, ip output size 200
         if Xprime is not None:
             for jj in range(nFeats):
-                Xprimejj = np.squeeze(net.blobs['ip1'].data[:,jj,:,:])  # feature jj, all objects
+                Xprimejj = np.squeeze(net.blobs[extractFeat].data[:,jj,:,:])  # feature jj, all objects
                 assert(len(Xprimejj.shape)==1)           # should be a vector (vs tensor)
                 Xprime[jj, Idx[:,0], Idx[:,1], Idx[:,2]] = Xprimejj[:Idx.shape[0]]
 
@@ -290,7 +296,7 @@ if __name__ == "__main__":
     #----------------------------------------
     # Do it
     #----------------------------------------
-    extractFeat = True if len(outFileNameX) else False
+    extractFeat = 'ip1' if len(outFileNameX) else False
     Yhat, Xprime = _eval_cube(net, X, Mask, batchDim, extractFeat=extractFeat)
  
     # discard border/mirroring
