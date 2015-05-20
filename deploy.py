@@ -293,25 +293,15 @@ if __name__ == "__main__":
     extractFeat = True if len(outFileNameX) else False
     Yhat, Xprime = _eval_cube(net, X, Mask, batchDim, extractFeat=extractFeat)
  
-    # Apply thresholds and chuck the border before saving.
-    #
-    # Note: I only know how to auto-assign labels in the binary
-    #       classification case.  For multi-class, this is unclear.
-    #if Yhat.shape[0] == 2:
-    #    Yhat[0, X > args.ub] = 0.0     # p(membrane | very bright)
-    #    Yhat[0, X < args.lb] = 1.0     # p(membrane | very dark)
-    #    Yhat[1, X > args.ub] = 1.0     # p(~membrane | very bright)
-    #    Yhat[1, X < args.lb] = 0.0     # p(~membrane | very dark)
-
-    # discard border
+    # discard border/mirroring
     Yhat = Yhat[:, :, borderSize:(-borderSize), borderSize:(-borderSize)]
-
      
     print('[deploy]: Finished.  Saving estimates...')
     np.save(outFileNameY, Yhat)
     scipy.io.savemat(outFileNameY+".mat", {'Yhat' : Yhat})
 
     if Xprime is not None:
+        Xprime = Xprime[:, :, borderSize:(-borderSize), borderSize:(-borderSize)]
         np.save(outFileNameX, Xprime)
         scipy.io.savemat(outFileNameX+".mat", {'Xprime' : Xprime})
     
