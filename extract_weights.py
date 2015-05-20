@@ -2,7 +2,7 @@
 # layer to separate files).
 #
 #  Example:
-#      PYTHONPATH=~/Apps/caffe/python python ~/extract_weights.py -m iter_200000.caffemodel  -n ../n3-net.prototxt
+#    PYTHONPATH=~/Apps/caffe/python python extract_weights.py -m iter_200000.caffemodel  -n n3-net.prototxt
 #
 # May 2015, Mike Pekala
 
