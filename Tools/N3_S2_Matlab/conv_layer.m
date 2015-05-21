@@ -19,8 +19,12 @@ function Xout = conv_layer(X, F, bias)
 
 
 % The difference between convolution and correlation is a rotation
-% bu 180 degrees.  Hence the flipud(fliplr(.))
-op = @(A, B) conv2(A, flipud(fliplr(B)), 'valid'); 
+% by 180 degrees.  Hence the flipud(fliplr(.))
+%
+% Update: using anonymous functions was causing a performance hit, so
+% inline this instead.
+%
+% conv_op = @(A, B) conv2(A, flipud(fliplr(B)), 'valid'); 
 
 
 % make sure the filter and bias are the right size
@@ -48,13 +52,15 @@ for ii = 1:nOutChan
         % Special case where input has a single filter channel.
         %
         Fi = F(:,:,1,ii); 
-        Xout(:,:,ii) = op(X, Fi);
+        %Xout(:,:,ii) = conv_op(X, Fi);
+        Xout(:,:,ii) = conv2(X, flipud(fliplr(Fi)), 'valid');
     else
         % More general case where X has > 1 input channel.
         %
         for jj = 1:nInChan
             Fj = F(:,:,jj,ii);
-            Xout(:,:,ii) = Xout(:,:,ii) + op(X(:,:,jj), Fj);
+            %Xout(:,:,ii) = Xout(:,:,ii) + conv_op(X(:,:,jj), Fj);
+            Xout(:,:,ii) = Xout(:,:,ii) + conv2(X(:,:,jj), flipud(fliplr(Fj)), 'valid');
         end
     end
  
