@@ -14,7 +14,7 @@
 Param.dataFile = '~/Data/SynapseData3/X_test.mat';   % the data volume to process
 Param.whichSlice = 1;                                % the slice to process
 Param.weightDir = 'Example';                         % directory containing CNN weights
-Param.tileSize = 32;
+Param.borderSize = 32;                               % edge mirroring size (pixels)
 
 Param
 
@@ -102,8 +102,7 @@ X = single(X_test(:,:,Param.whichSlice));
 clear X_test;
 
 % mirror edges
-% note: hardcoded tile size...
-X = mirror_edges(X, Param.tileSize);
+X = mirror_edges(X, Param.borderSize);
 
 
 
