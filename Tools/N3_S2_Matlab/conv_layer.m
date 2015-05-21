@@ -17,7 +17,10 @@ function Xout = conv_layer(X, F, bias)
 %
 % May 2015, mjp
 
-op = @(A, B) conv2(A, flipud(fliplr(B)), 'valid');  % really we want 2d correlation...
+
+% The difference between convolution and correlation is a rotation
+% bu 180 degrees.  Hence the flipud(fliplr(.))
+op = @(A, B) conv2(A, flipud(fliplr(B)), 'valid'); 
 
 
 % make sure the filter and bias are the right size
