@@ -1,4 +1,4 @@
-% APPLY  Applies a CNN to a data volume.
+% RUN_N3_S2  Applies a particular CNN to a data volume.
 %
 %   As of this writing, this script is limited to processing a single
 %   slice from the data volume (due to memory limitations).  
@@ -17,21 +17,6 @@ Param.weightDir = 'Example';                         % directory containing CNN 
 Param.tileSize = 32;
 
 Param
-
-%-------------------------------------------------------------------------------
-%% Load data
-%-------------------------------------------------------------------------------
-
-fprintf('[%s]: loading data...\n', mfilename);
-load(Param.dataFile);
-
-X = single(X_test(:,:,Param.whichSlice));
-clear X_test;
-
-% mirror edges
-% note: hardcoded tile size...
-X = mirror_edges(X, Param.tileSize);
-
 
 %-------------------------------------------------------------------------------
 %% Load CNN weights
@@ -106,9 +91,24 @@ assert(size(ip2Weight,2) == 2);
 ip2Bias = squeeze(ip2Bias);
 
 
+%-------------------------------------------------------------------------------
+%% Load data
+%-------------------------------------------------------------------------------
+
+fprintf('[%s]: loading data...\n', mfilename);
+load(Param.dataFile);
+
+X = single(X_test(:,:,Param.whichSlice));
+clear X_test;
+
+% mirror edges
+% note: hardcoded tile size...
+X = mirror_edges(X, Param.tileSize);
+
+
 
 %===============================================================================
-% Apply CNN
+%% Apply CNN
 %===============================================================================
 
 tic
