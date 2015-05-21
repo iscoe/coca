@@ -323,8 +323,8 @@ def _training_loop(solver, X, Y, M, solverParam, batchDim, outDir,
                 precision = (1.0*Confusion[1,1]) / np.sum(Confusion[:,1])
                 recall = (1.0*Confusion[1,1]) / np.sum(Confusion[1,:])
                 f1Score = (2.0 * precision * recall) / (precision + recall);
-                print '    precision=%0.2f, recall=%0.2f' % (precision, recall)
-                print '    F1=%0.2f' % f1Score
+                print '    precision=%0.3f, recall=%0.3f' % (precision, recall)
+                print '    F1=%0.3f' % f1Score
         else:
             print '[train]: Not using a validation data set'
             
