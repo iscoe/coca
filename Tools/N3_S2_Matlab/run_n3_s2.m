@@ -176,4 +176,4 @@ toc
 
 fprintf('[%s]: done processing slice %d\n', mfilename, Param.whichSlice);
 figure; imagesc(Ypos); colorbar; 
-title('Probability of Synapse (1/8 resolution)');
+title(sprintf('Probability of Synapse (slice %d, 1/8 resolution)', Param.whichSlice));
