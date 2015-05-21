@@ -1,15 +1,22 @@
 % May 2015, mjp
 
+Param.dataDir = '~/Data/SynapseData3/X_test.mat';
+Param.weightDir = 'Example';
+Param.whichSlice = 1;
+
+Param
+
 %-------------------------------------------------------------------------------
-% Load data
+%% Load data
 %-------------------------------------------------------------------------------
 
-fprintf('[%s]: loading data and filters...\n', mfilename);
-load ~/Data/SynapseData3/X_test.mat
+fprintf('[%s]: loading data...\n', mfilename);
+load(Param.dataDir);
 
 % Due to memory limitations, only process a single slice.
-whichSlice = 1; 
-X = single(X_test(:,:,whichSlice));
+% TODO: create a loop that processes the whole volume one slice at a time.
+%
+X = single(X_test(:,:,Param.whichSlice));
 clear X_test;
 
 % mirror edges
@@ -18,8 +25,11 @@ X = mirror_edges(X, 32);
 
 
 %-------------------------------------------------------------------------------
-% Load filters
+%% Load CNN weights
+% Note this is hard-coding a specific network architecture.
 %-------------------------------------------------------------------------------
+
+fprintf('[%s]: loading weights...\n', mfilename);
 
 % Helper functions for dealing with convolutional filter weights.
 %
@@ -31,37 +41,37 @@ reshape_b = @(B) squeeze(permute(B, [4 1 2 3]));
 
 
 %--------------------------------------------------
-% Layer 1 - CNN
+% Layer 1 - convolution
 %--------------------------------------------------
-load Parameters/conv1Weight
-load Parameters/conv1Bias
+load(fullfile(Param.weightDir, 'conv1Weight'));
+load(fullfile(Param.weightDir, 'conv1Bias'));
 
 conv1Weight = reshape_conv_w(conv1Weight);
 conv1Bias = reshape_b(conv1Bias);
 
 %--------------------------------------------------
-% Layer 2 - CNN
+% Layer 2 - convolution
 %--------------------------------------------------
-load Parameters/conv2Weight
-load Parameters/conv2Bias
+load(fullfile(Param.weightDir, 'conv2Weight'));
+load(fullfile(Param.weightDir, 'conv2Bias'));
 
 conv2Weight = reshape_conv_w(conv2Weight);
 conv2Bias = reshape_b(conv2Bias);
 
 %--------------------------------------------------
-% Layer 3 - CNN
+% Layer 3 - convolution
 %--------------------------------------------------
-load Parameters/conv3Weight
-load Parameters/conv3Bias
+load(fullfile(Param.weightDir, 'conv3Weight'));
+load(fullfile(Param.weightDir, 'conv3Bias'));
 
 conv3Weight = reshape_conv_w(conv3Weight);
 conv3Bias = reshape_b(conv3Bias);
 
 %--------------------------------------------------
-% Layer 4 - IP
+% Layer 4 - inner product
 %--------------------------------------------------
-load Parameters/ip1Weight
-load Parameters/ip1Bias
+load(fullfile(Param.weightDir, 'ip1Weight'));
+load(fullfile(Param.weightDir, 'ip1Bias'));
 
 % -> (width, height, nInChannels, nOutChannels)
 %    (5, 5, 48, 200)
@@ -75,10 +85,10 @@ ip1Bias = squeeze(ip1Bias);
 
 
 %--------------------------------------------------
-% Layer 5 - IP
+% Layer 5 - inner product
 %--------------------------------------------------
-load Parameters/ip2Weight
-load Parameters/ip2Bias
+load(fullfile(Param.weightDir, 'ip2Weight'));
+load(fullfile(Param.weightDir, 'ip2Bias'));
 
 ip2Weight = reshape(ip2Weight, [2 200]);
 ip2Weight = permute(ip2Weight, [2 1]);
@@ -89,7 +99,7 @@ ip2Bias = squeeze(ip2Bias);
 
 
 %===============================================================================
-% Apply filters
+% Apply CNN
 %===============================================================================
 
 tic
@@ -101,12 +111,14 @@ X1 = conv_layer(X, conv1Weight, conv1Bias);
 X1 = max(X1, 0);
 X1 = maxpool2(X1);
 
+
 %--------------------------------------------------
 fprintf('[%s]: Applying CNN layer 2\n', mfilename);
 %--------------------------------------------------
 X2 = conv_layer(X1, conv2Weight, conv2Bias);
 X2 = max(X2, 0);
 X2 = maxpool2(X2);
+
 
 %--------------------------------------------------
 fprintf('[%s]: Applying CNN layer 3\n', mfilename);
@@ -128,13 +140,13 @@ fprintf('[%s]: Applying IP layer 1\n', mfilename);
 % dimension of ip1.
 X4 = conv_layer(X3, ip1Weight, ip1Bias);
 
-X4 = max(X4,0);  % evidently I left a RELU after IP1
-
+X4 = max(X4,0);  % evidently I had a RELU after IP1
 
 
 %--------------------------------------------------
 fprintf('[%s]: Applying IP layer 2\n', mfilename);
 %--------------------------------------------------
+% TODO: generalize this?
 X5neg = X4(:,:,1) * ip2Weight(1,1);
 X5pos = X4(:,:,1) * ip2Weight(1,2);
 for ii = 2:size(X4,3)
@@ -145,6 +157,7 @@ X5neg = X5neg + ip2Bias(1);
 X5pos = X5pos + ip2Bias(2);
 
 % softmax
+% TODO: put this in it's own function
 mv = max([ X5neg(:) ; X5pos(:) ]);  % subtract max val for numerical stability.
                                     % (ref: Caffe's softmax_layer.cpp )
 Ypos = exp(X5pos - mv) ./ ( exp(X5pos - mv) + exp(X5neg - mv) );
@@ -152,3 +165,6 @@ Ypos = exp(X5pos - mv) ./ ( exp(X5pos - mv) + exp(X5neg - mv) );
 toc
 
 
+fprintf('[%s]: done processing slice %d\n', mfilename, Param.whichSlice);
+figure; imagesc(Ypos); colorbar; 
+title('Probability of Synapse (1/8 resolution)');
