@@ -1,8 +1,12 @@
 function Xout = maxpool2(X)
 % MAXPOOL2  Max pool operator with a kernel of 2 and stride of 2.
 %
-%  A much faster way of doing the following:
+%   It should be possible to implement this using blocproc, e.g., 
+%
 %        Xout(:,:,ii) = blockproc(X(:,:,ii), [2 2], @(bs) max(bs.data(:)));
+%
+%   however, in the special case of kernel=2, the explict slicing
+%   operations below seem to be faster.
 %
 %  May 2015, mjp
 
@@ -24,5 +28,8 @@ for ii = 1:p
     Z(:,:,3) = X(2:end, 1:end-1, ii);      % lower left
     Z(:,:,4) = X(2:end, 2:end, ii);        % lower right
     Tmp = max(Z, [], 3); 
+    
+    % The assumption that the stride is two shows up in the slicing
+    % operation below.
     Xout(:,:,ii) = Tmp(1:2:end, 1:2:end);
 end
