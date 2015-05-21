@@ -1,18 +1,23 @@
 function Xout = conv_layer(X, F, bias)
 % CONV_LAYER  Simulates a single CNN convolutional layer
 %
-%   X := either a (width x height) data matrix OR
+%  PARAMETERS:
+%   X := either a (width x height) data matrix 
+%                       -OR-
 %        a (width x height x nInputChannels) data tensor
 %
-%   F := a (width x height x nInputChannels x nOutputChannels) tensor
-%        extracted from a Caffe model file.
+%   F := Convolution kernel.  A 4d tensor with dimensions
+%        (width x height x nInputChannels x nOutputChannels)
+%        Presumably extracted from a Caffe model file.
 %
 %   bias := a (nOutChannels x 1) vector
 %
+%  RETURNS:
+%   A tensor with dimensions (width x height x nOutputChannels)
+%
 % May 2015, mjp
 
-convType = 'valid';
-op = @(A, B) conv2(A, flipud(fliplr(B)), convType);  % really we want 2d correlation...
+op = @(A, B) conv2(A, flipud(fliplr(B)), 'valid');  % really we want 2d correlation...
 
 
 % make sure the filter and bias are the right size
@@ -33,14 +38,7 @@ end
 %----------------------------------------
 % Run the calculation
 %----------------------------------------
-if strcmp(convType, 'valid')
-    Xout = zeros(size(X,1) - 2*floor(w/2), size(X,2) - 2*floor(w/2), nOutChan);
-elseif strcmp(convType, 'same')
-    Xout = zeros(size(X,1), size(X,2), nOutChan);
-else
-    error('unexpected conv type');
-end
-
+Xout = zeros(size(X,1) - 2*floor(w/2), size(X,2) - 2*floor(w/2), nOutChan);
 
 for ii = 1:nOutChan
     if length(size(X)) == 2
