@@ -1,8 +1,20 @@
+% APPLY  Applies a CNN to a data volume.
+%
+%   As of this writing, this script is limited to processing a single
+%   slice from the data volume (due to memory limitations).  
+%     TODO: add a for loop to process all slices.
+%     TODO: map subsampled points to appropriate place in overall volume.
+%
+%   Note: there are a lot of hardcoded assumptions in this script; as
+%   such, it is only applicable to reproducing the results of a
+%   specific CNN.
+%
 % May 2015, mjp
 
-Param.dataDir = '~/Data/SynapseData3/X_test.mat';
-Param.weightDir = 'Example';
-Param.whichSlice = 1;
+Param.dataFile = '~/Data/SynapseData3/X_test.mat';   % the data volume to process
+Param.whichSlice = 1;                                % the slice to process
+Param.weightDir = 'Example';                         % directory containing CNN weights
+Param.tileSize = 32;
 
 Param
 
@@ -11,17 +23,14 @@ Param
 %-------------------------------------------------------------------------------
 
 fprintf('[%s]: loading data...\n', mfilename);
-load(Param.dataDir);
+load(Param.dataFile);
 
-% Due to memory limitations, only process a single slice.
-% TODO: create a loop that processes the whole volume one slice at a time.
-%
 X = single(X_test(:,:,Param.whichSlice));
 clear X_test;
 
 % mirror edges
 % note: hardcoded tile size...
-X = mirror_edges(X, 32);
+X = mirror_edges(X, Param.tileSize);
 
 
 %-------------------------------------------------------------------------------
