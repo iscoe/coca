@@ -22,7 +22,9 @@
 #
 #
 #   Note: as of this writing, pycaffe does *not* support testing data.
-#   So the protobuf files must not include any constructs relating to
+#   (this may be an artifact of the version of caffe we are using, which is
+#    somewhat dated...)
+#   Consequently, protobuf files must not include any constructs relating to
 #   test data (including parameters in the solver prototxt)
 #
 #
@@ -320,7 +322,9 @@ def _training_loop(solver, X, Y, M, solverParam, batchDim, outDir,
                 #
                 precision = (1.0*Confusion[1,1]) / np.sum(Confusion[:,1])
                 recall = (1.0*Confusion[1,1]) / np.sum(Confusion[1,:])
+                f1Score = (2.0 * precision * recall) / (precision + recall);
                 print '    precision=%0.2f, recall=%0.2f' % (precision, recall)
+                print '    F1=%0.2f' % f1Score
         else:
             print '[train]: Not using a validation data set'
             
