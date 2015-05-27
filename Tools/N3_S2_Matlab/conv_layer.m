@@ -45,21 +45,21 @@ end
 %----------------------------------------
 % Run the calculation
 %----------------------------------------
-Xout = zeros(size(X,1) - 2*floor(w/2), size(X,2) - 2*floor(w/2), nOutChan);
+wOut = size(X,1) - 2*floor(w/2);
+hOut = size(X,2) - 2*floor(h/2);
+Xout = zeros(wOut, hOut, nOutChan);
 
 for ii = 1:nOutChan
     if length(size(X)) == 2
         % Special case where input has a single filter channel.
         %
         Fi = F(:,:,1,ii); 
-        %Xout(:,:,ii) = conv_op(X, Fi);
         Xout(:,:,ii) = conv2(X, flipud(fliplr(Fi)), 'valid');
     else
         % More general case where X has > 1 input channel.
         %
         for jj = 1:nInChan
             Fj = F(:,:,jj,ii);
-            %Xout(:,:,ii) = Xout(:,:,ii) + conv_op(X(:,:,jj), Fj);
             Xout(:,:,ii) = Xout(:,:,ii) + conv2(X(:,:,jj), flipud(fliplr(Fj)), 'valid');
         end
     end
