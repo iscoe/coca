@@ -14,10 +14,10 @@ function Xout = maxpool2(X, stride)
 
 if nargin < 2, stride=2; end
 
-assert(length(size(X)) == 3);
+assert(length(size(X)) <= 3);
 assert(stride >= 1);
 
-[m,n,p] = size(X);
+[m,n,p] = size(X);    % if X is a matrix, p will be 1 which is fine
 
 mm = length(1:stride:m-1);
 nn = length(1:stride:n-1);
