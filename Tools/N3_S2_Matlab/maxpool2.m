@@ -1,7 +1,9 @@
-function Xout = maxpool2(X)
-% MAXPOOL2  Max pool operator with a kernel of 2 and stride of 2.
+function Xout = maxpool2(X, stride)
+% MAXPOOL2  Max pool operator with a kernel size of 2.
 %
-%   It should be possible to implement this using blocproc, e.g., 
+%   Xout = maxpool(X, stride=2)
+%
+%   Note: It should be possible to implement this using blocproc, e.g., 
 %
 %        Xout(:,:,ii) = blockproc(X(:,:,ii), [2 2], @(bs) max(bs.data(:)));
 %
@@ -10,11 +12,15 @@ function Xout = maxpool2(X)
 %
 %  May 2015, mjp
 
+if nargin < 2, stride=2; end
+
 assert(length(size(X)) == 3);
+assert(stride >= 1);
+
 [m,n,p] = size(X);
 
-mm = length(1:2:m-1);
-nn = length(1:2:n-1);
+mm = length(1:stride:m-1);
+nn = length(1:stride:n-1);
 Xout = zeros(mm, nn, p);
 
 Z = zeros(m-1, n-1, 4);
@@ -28,8 +34,11 @@ for ii = 1:p
     Z(:,:,3) = X(2:end, 1:end-1, ii);      % lower left
     Z(:,:,4) = X(2:end, 2:end, ii);        % lower right
     Tmp = max(Z, [], 3); 
-    
-    % The assumption that the stride is two shows up in the slicing
-    % operation below.
-    Xout(:,:,ii) = Tmp(1:2:end, 1:2:end);
+   
+    % implement stride 
+    if stride > 1
+        Xout(:,:,ii) = Tmp(1:stride:end, 1:stride:end);
+    else
+        Xout(:,:,ii) = Tmp;
+    end
 end
