@@ -45,8 +45,8 @@ end
 %----------------------------------------
 % Run the calculation
 %----------------------------------------
-wOut = size(X,1) - 2*floor(w/2);
-hOut = size(X,2) - 2*floor(h/2);
+wOut = size(X,1) - w + 1;
+hOut = size(X,2) - h + 1;
 Xout = zeros(wOut, hOut, nOutChan);
 
 for ii = 1:nOutChan
