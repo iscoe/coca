@@ -8,7 +8,9 @@ As of May 2015 this package is primarily a wrapper that performs data augmentati
 
 
 In order to use this package, one must first have Caffe (and the
-associated Python API, termed "pycaffe") installed.  Note that the pycaffe API has evolved over time so depending upon your particular version of Caffe some minor code surgery may be required.  As of May 2015 this code has been verified to work with version XXX.
+associated Python API, termed "pycaffe") installed.  Note that pycaffe evolves over time so depending upon your particular version of Caffe some minor code surgery may be required.  As of May 2015 this code has been verified to work with Caffe versions:
+
+ * Development branch October 3, 2014
 
 You must also supply data for training and test.  For one example of
 how to use COCA with real data, please see the
