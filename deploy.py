@@ -164,6 +164,11 @@ def _eval_cube(net, X, M, batchDim, extractFeat=''):
         yiHat = out['prob']
         cnnTime += time.time() - _tmp
 
+        # On some version of Caffe, yiHat is (batchSize, nClasses, 1, 1)
+        # On newer versions, it is natively (batchSize, nClasses)
+        # The squeeze here is to accommodate older versions
+        yiHat = np.squeeze(yiHat) 
+
         # store the per-class probability estimates.
         #
         # * Note that on the final iteration, the size of yiHat may not match
@@ -171,7 +176,7 @@ def _eval_cube(net, X, M, batchDim, extractFeat=''):
         #   size is a multiple of the mini-batch size).  This is why we slice
         #   yijHat before assigning to Yhat.
         for jj in range(nClasses):
-            yijHat = np.squeeze(yiHat[:,jj,:,:])   # get slice containing probabilities for class j
+            yijHat = yiHat[:,jj]                   # get slice containing probabilities for class j
             assert(len(yijHat.shape)==1)           # should be a vector (vs tensor)
             Yhat[jj, Idx[:,0], Idx[:,1], Idx[:,2]] = yijHat[:Idx.shape[0]]   # (*)
 
