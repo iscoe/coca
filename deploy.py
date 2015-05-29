@@ -288,14 +288,23 @@ if __name__ == "__main__":
             caffe.set_device(gpuId)
         else:
             caffe.set_mode_cpu()
-        caffe.set_phase_train()
     except AttributeError:
         if not isModeCPU:
             net.set_mode_gpu()
             net.set_device(gpuId)
         else:
             net.set_mode_cpu()
-        net.set_phase_train()
+        
+    # Same API-related issues with setting the phase to "train".  An
+    # additional complication here is that newer pycaffe (May 28,
+    # 2015) does not seem to even have a train phase.
+    try:
+        caffe.set_phase_train()
+    except AttributeError:
+        try:
+            solver.net.set_phase_train()
+        except AttributeError:
+            pass # hopefully this is a version of Caffe that doesn't require train mode...
 
     sys.stdout.flush()
     
