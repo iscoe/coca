@@ -1,18 +1,14 @@
-# coca
+# COCA (Caffe-based Object Classification and Annotation)
  This repository is for the Caffe-based Object Classification and
  Annotation project, which uses convolutional neural networks to find
  biological structures in image data.
 
-As of May 2015 this package is primarily a wrapper that takes care of
-pre-processing image data to facilitate using Caffe in a
-sliding-window fashion to classify individual pixels/voxels in a 3D
-volume of image data.  Examples include detecting membranes and
-[synapses](http://arxiv.org/abs/1403.3724)  at the pixel level.
+The general approach is to apply a sliding window detector to classify individual pixels/voxels in a 3D volume of image data.  The effort initially began as an exercise in reproducing the results from [Ciresan et. al. 2012](http://papers.nips.cc/paper/4741-deep-neural-networks-segment-neuronal-membranes-in-electron-microscopy-images) using Theano.
+As of May 2015 this package is primarily a wrapper that performs data augmentation for Caffe.
+
 
 In order to use this package, one must first have Caffe (and the
-associate Python API) installed.   Note that this was developed using
-a somewhat old version of Caffe (circa December 2012) so it may be
-incompatible with newer versions due to API changes.
+associated Python API, termed "pycaffe") installed.  Note that the pycaffe API has evolved over time so depending upon your particular version of Caffe some minor code surgery may be required.  As of May 2015 this code has been verified to work with version XXX.
 
 You must also supply data for training and test.  For one example of
 how to use COCA with real data, please see the
