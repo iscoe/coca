@@ -302,7 +302,7 @@ if __name__ == "__main__":
         caffe.set_phase_train()
     except AttributeError:
         try:
-            solver.net.set_phase_train()
+            net.set_phase_train()
         except AttributeError:
             pass # hopefully this is a version of Caffe that doesn't require train mode...
 
