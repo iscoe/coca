@@ -266,7 +266,14 @@ if __name__ == "__main__":
     #----------------------------------------
     # Create the Caffe network
     #----------------------------------------
-    net = caffe.Net(netFn, args.model)
+    # UPDATE: 5/28/2015: Net constructor requires a new third argument - the phase - in the latest caffe.
+    # I suppose is is in leiu of calling set_phase() below.
+    try:
+        net = caffe.Net(netFn, args.model)
+    except: # ArgumentError
+        phaseTest = 1  # XXX: verify 1 is the correct value for test phase
+        net = caffe.Net(netFn, args.model, phaseTest)
+    
     for name, blobs in net.params.iteritems():
         print("%s : %s" % (name, blobs[0].data.shape))
         
