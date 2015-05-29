@@ -296,7 +296,7 @@ if __name__ == "__main__":
     #----------------------------------------
     # Do it
     #----------------------------------------
-    extractFeat = 'ip1' if len(outFileNameX) else False
+    extractFeat = 'ip1' if len(outFileNameX) else ''
     Yhat, Xprime = _eval_cube(net, X, Mask, batchDim, extractFeat=extractFeat)
  
     # discard border/mirroring
