@@ -21,11 +21,21 @@
 #   details locally.
 #
 #
-#   Note: as of this writing, pycaffe does *not* support testing data.
+#   NOTE: as of this writing, pycaffe does *not* support testing data.
 #   (this may be an artifact of the version of caffe we are using, which is
 #    somewhat dated...)
 #   Consequently, protobuf files must not include any constructs relating to
 #   test data (including parameters in the solver prototxt)
+#
+#   UPDATE: Using the Caffe master branch from May 28, 2015 it seems that
+#   it may not be necessary to specify testing mode anymore.  However, I
+#   encountered the following issue with the MemoryDataLayer:
+#
+#      https://github.com/BVLC/caffe/issues/2334
+#
+#   Applying the patch in the above link seems to have fixed the issue.
+#
+#   
 #
 #
 # Example usage: (see also the Makefile)
@@ -461,14 +471,23 @@ if __name__ == "__main__":
             caffe.set_device(gpuId)
         else:
             caffe.set_mode_cpu()
-        caffe.set_phase_train()
     except AttributeError:
         if not isModeCPU:
             solver.net.set_mode_gpu()
             solver.net.set_device(gpuId)
         else:
             solver.net.set_mode_cpu()
-        solver.net.set_phase_train()
+
+    # Same API-related issues with setting the phase to "train".  An
+    # additional complication here is that newer pycaffe (May 28,
+    # 2015) does not seem to even have a train phase.
+    try:
+        caffe.set_phase_train()
+    except AttributeError:
+        try:
+            solver.net.set_phase_train()
+        except AttributeError:
+            pass # hopefully this is a version of Caffe that doesn't require test mode...
  
     #----------------------------------------
     # Do training; save results
