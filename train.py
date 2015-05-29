@@ -28,7 +28,7 @@
 #   test data (including parameters in the solver prototxt)
 #
 #   UPDATE: Using the Caffe master branch from May 28, 2015 it seems that
-#   it may not be necessary to specify testing mode anymore.  However, I
+#   it may not be necessary to specify training mode anymore.  However, I
 #   encountered the following issue with the MemoryDataLayer:
 #
 #      https://github.com/BVLC/caffe/issues/2334
@@ -487,7 +487,7 @@ if __name__ == "__main__":
         try:
             solver.net.set_phase_train()
         except AttributeError:
-            pass # hopefully this is a version of Caffe that doesn't require test mode...
+            pass # hopefully this is a version of Caffe that doesn't require train mode...
  
     #----------------------------------------
     # Do training; save results
