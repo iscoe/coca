@@ -1,6 +1,6 @@
-# COCA (Caffe-based Object Classification and Annotation)
+# COCA 
  This repository is for the Caffe-based Object Classification and
- Annotation project, which uses convolutional neural networks to find
+ Annotation (COCA) project, which uses convolutional neural networks to find
  biological structures in image data.
 
 The general approach is to apply a sliding window detector to classify individual pixels/voxels in a 3D volume of image data.  The effort initially began as an exercise in reproducing the results from [Ciresan et. al. 2012](http://papers.nips.cc/paper/4741-deep-neural-networks-segment-neuronal-membranes-in-electron-microscopy-images) using Theano.
