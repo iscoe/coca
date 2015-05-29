@@ -158,6 +158,7 @@ def _eval_cube(net, X, M, batchDim, extractFeat=''):
             d = Idx[jj,2] + tileRadius + 1
             Xi[jj, 0, :, :] = X[ Idx[jj,0], a:b, c:d ]
 
+        # CNN forward pass
         _tmp = time.time()
         net.set_input_arrays(Xi, yDummy)
         out = net.forward()
