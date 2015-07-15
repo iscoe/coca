@@ -31,13 +31,13 @@
     Applying the patch in the above link seems to have fixed the issue.
 
  REFERENCES:
+  o Jia, Y. et. al. "Caffe: Convolutional Architecture for Fast Feature Embedding
+    arXiv preprint, 2014.
+    
   o http://caffe.berkeleyvision.org/
    
   o Ciresan, D., et al. "Deep neural networks segment neuronal membranes in
     electron microscopy images." NIPS 2012.
-       
-  o Jia, Y. et. al. "Caffe: Convolutional Architecture for Fast Feature Embedding
-    arXiv preprint, 2014.
 """
 
 __author__ = "Mike Pekala"
