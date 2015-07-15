@@ -394,8 +394,10 @@ if __name__ == "__main__":
     X = emlib.mirror_edges(X, borderSize)
     Y = emlib.mirror_edges(Y, borderSize)
 
-    # Identify the subset of the data to use for training; make a copy (assumes
-    # data set is not prohibitively large to make a copy)
+    # Identify the subset of the data to use for training.
+    # These slices should create views (rather than copies) of
+    # the original data volumes (so should not consume a lot
+    # of extra memory...)
     trainIdx = eval(args.trainSlicesExpr)
     validIdx = eval(args.validSlicesExpr)
     if not set(trainIdx).isdisjoint(set(validIdx)):
