@@ -6,17 +6,11 @@
   o If you are extracting features, assumes feature are associated with
     an inner product layer called "ip1"
 
-
-  EXAMPLE USAGE: (see also Makefile)
-     PYTHONPATH=~/Apps/caffe-master/python ipython
-     %run deploy.py  -s caffe_files/n3-solver.prototxt -m iter_04000.caffemodel -gpu 2
-
   Note that we require the solver file (vs. just the network file)
   since that's where the CPU/GPU flag lives.  Alternatively, we could
   add a cpu/gpu flag to this script and only require the caller
   specify the network file (which would be more consistent with
   Caffe's command line API)
-
 
   Note that using a "brute force" approach of extracting every possible subtile from
   an image an then processing that tile using a CNN is fairly inefficient.  In particular,
