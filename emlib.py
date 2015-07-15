@@ -1,25 +1,9 @@
-#   Helper functions for use with the Caffe+EM train/evaluatation procedures.
-#
-# Feb 2015, Mike Pekala
+""" Helper functions for use with the Caffe+EM train/evaluatation procedures.
+"""
 
-
-################################################################################
-# (c) [2014] The Johns Hopkins University / Applied Physics Laboratory All Rights Reserved.
-# Contact the JHU/APL Office of Technology Transfer for any additional rights.  www.jhuapl.edu/ott
-# 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-# 
-#    http://www.apache.org/licenses/LICENSE-2.0
-# 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
-
+__author__ = "Mike Pekala"
+__copyright__ = "Copyright 2014, JHU/APL"
+__license__ = "Apache 2.0"
 
 
 import os, sys, re
@@ -35,7 +19,7 @@ import h5py
 
 
 def load_cube(dataFile, dtype='float32'):
-    """ Loads a volume of image data (e.g. EM data cube or class labels).
+    """ Loads a data volume.  This could be image data or class labels.
 
     Uses the file extension to determine the underlying data format.
     Note that the Matlab data format currently assumes you saved using
