@@ -1,4 +1,4 @@
-""" Helper functions for use with the Caffe+EM train/evaluatation procedures.
+""" Helper functions used by the train.py and deploy.py scripts.
 """
 
 __author__ = "Mike Pekala"
