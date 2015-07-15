@@ -1,74 +1,48 @@
-#   Trains a Caffe [1] DNN for pixel-level classification of objects within
-#   electron microscopy (EM) data.
-#
-#   This code is a newer version of a previous (Theano-based)
-#   implementation using the approach of [2] to classify membranes in
-#   EM data.  In this approach, to classify a pixel one first extracts
-#   a tile of data centered on the pixel in question (provides
-#   context).  The DNN is provided with the entire tile, whose label
-#   is that of the center pixel.
-#
-#   The reason for this code (vs simply applying the command-line
-#   version of Caffe) is that the images used for training/test are
-#   square patches extracted from the orignal EM images.  One option
-#   would be to extract all of these images up front, but this eats up
-#   a lot of storage and also makes it a bit clunky to deal with class
-#   imbalance (there are many more non-membrane pixels than membrane
-#   pixels).  Another alternative would be to write a new Caffe data
-#   layer that extracts these tiles on-the-fly; this is basically what
-#   this code does (without being a formal Caffe layer object). The
-#   downside of this approach is that we have to implement the solver
-#   details locally.
-#
-#
-#   NOTE: as of this writing, pycaffe does *not* support testing data.
-#   (this may be an artifact of the version of caffe we are using, which is
-#    somewhat dated...)
-#   Consequently, protobuf files must not include any constructs relating to
-#   test data (including parameters in the solver prototxt)
-#
-#   UPDATE: Using the Caffe master branch from May 28, 2015 it seems that
-#   it may not be necessary to specify training mode anymore.  However, I
-#   encountered the following issue with the MemoryDataLayer:
-#
-#      https://github.com/BVLC/caffe/issues/2334
-#
-#   Applying the patch in the above link seems to have fixed the issue.
-#
-#   
-#
-#
-# Example usage: (see also the Makefile)
-#     PYTHONPATH=~/Apps/caffe-master/python nohup ipython train.py &
-#
-# References:
-#   [1] Jia, Y. et. al. "Caffe: Convolutional Architecture for Fast Feature Embedding
-#       arXiv preprint, 2014.
-#
-#   [2] Ciresan, D., et al. "Deep neural networks segment neuronal membranes in
-#       electron microscopy images." NIPS 2012.
-#
-#   [3] https://groups.google.com/forum/#!topic/caffe-users/NKsSbZ3boGg
-#
-# Feb 2015, Mike Pekala
+""" This script is a wrapper around PyCaffe (the Python Caffe API)
+  that uses a sliding window detector to classify individual
+  pixels/voxels in a 3D volume of image data.
 
-################################################################################
-# (c) [2014] The Johns Hopkins University / Applied Physics Laboratory All Rights Reserved.
-# Contact the JHU/APL Office of Technology Transfer for any additional rights.  www.jhuapl.edu/ott
-# 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-# 
-#    http://www.apache.org/licenses/LICENSE-2.0
-# 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
+ DETAILS
+  To classify a given pixel one first extracts a tile centered on
+  the pixel in question and provides this tile to the DNN.  The
+  class label of the entire tile is the label of the center pixel.
+  This is based on the approach of Ciresan et. al.
+  
+  The reason for this code (vs simply applying the command-line
+  version of Caffe) is to avoid having to extract all possible tiles
+  from image data volumes (which are large to begin with).  Another
+  alternative would have been to develop a Caffe data layer that
+  implements a sliding window mechanism.  A downside of the PyCaffe
+  wrapper approach is that we have to (re)implement solver details
+  here (e.g. stochastic gradient descent).
+  
+ NOTES:
+  o the (somewhat legacy now) PyCaffe API we were originally using
+    did not support testing data. Consequently, protobuf files must not
+    include any constructs relating to test data (including parameters
+    in the solver prototxt)
 
+  o UPDATE (May 28, 2015): Using the Caffe master branch from May 28, 2015
+    it seems that it may not be necessary to specify training mode anymore.
+    However, I encountered the following issue with the MemoryDataLayer:
+
+      https://github.com/BVLC/caffe/issues/2334
+
+    Applying the patch in the above link seems to have fixed the issue.
+
+ REFERENCES:
+  o http://caffe.berkeleyvision.org/
+   
+  o Ciresan, D., et al. "Deep neural networks segment neuronal membranes in
+    electron microscopy images." NIPS 2012.
+       
+  o Jia, Y. et. al. "Caffe: Convolutional Architecture for Fast Feature Embedding
+    arXiv preprint, 2014.
+"""
+
+__author__ = "Mike Pekala"
+__copyright__ = "Copyright 2014, JHU/APL"
+__license__ = "Apache 2.0"
 
 
 import sys, os, argparse, time
@@ -95,17 +69,18 @@ def get_args():
                         help='Caffe solver prototxt file to use for training')
  
     parser.add_argument('-gpu', dest='gpu', type=int, default=-1,
-                        help='Run in GPU mode on given device ID')
+                        help='Specifies GPU device ID to use (implies use Caffe in GPU mode)')
  
     #----------------------------------------
     # Data set parameters.  Assuming here a data cube, where each xy-plane is a "slice" of the cube.
     #----------------------------------------
-    parser.add_argument('-X', dest='trainFileName', type=str, required=True, 
-                        help='Name of the file containing the EM data')
+
+        parser.add_argument('-X', dest='trainFileName', type=str, required=True, 
+                        help='Filename of the training data volume')
     parser.add_argument('-Y', dest='labelsFileName', type=str, required=True,
-                        help='This is the file containing the class labels')
+                        help='Filename of the training labels volume')
     parser.add_argument('-M', dest='maskFileName', type=str, default='',
-                        help='Name of the file containing a pixel evaluation mask (optional)')
+                        help='Filename of the voxel mask volume (optional)')
     
     parser.add_argument('--train-slices', dest='trainSlicesExpr', type=str, default='range(0,20)',
                         help='A python-evaluatable string indicating which slices should be used for training')
@@ -130,27 +105,32 @@ def _xform_minibatch(X, rotate=False):
     """Performs operations on the data tensor X that preserve the class label
     (used to synthetically increase size of data set on-the-fly).
 
-    Note: for some reason, some implementation of row and column reversals, e.g.
+    Parameters: 
+       X := a (# slices, # channels, rows, colums) tensor corresponding to
+            a data mini-batch
+       
+       rotate := a boolean; when true, will rotate the mini-batch X
+                 by some angle in [0, 2*pi)
+
+    Note: for some reason, the implementation of row and column reversals, e.g.
                X[:,:,::-1,:]
           break PyCaffe.  Numpy must be doing something under the hood (e.g. changing
           from C order to Fortran order) to implement this efficiently which is
           incompatible w/ PyCaffe.  Hence the explicit construction of X2 with order 'C'.
 
-    X := a (# slices, # channels, rows, colums) tensor
     """
     X2 = np.zeros(X.shape, dtype=np.float32, order='C')
 
     toss = np.random.rand()
     if toss < .2:
-        X2[:,:,:,:] = X[:,:,::-1,:]
+        X2[:,:,:,:] = X[:,:,::-1,:]    # fliplr
     elif toss < .4:
-        X2[:,:,:,:] = X[:,:,:,::-1]
+        X2[:,:,:,:] = X[:,:,:,::-1]    # flipud
     else:
-        X2[...] = X[...]  # no transformation
+        X2[...] = X[...]               # no transformation
 
     if rotate:
         angle = np.random.rand() * 360.0
-        #fillColor = 255.
         fillColor = np.max(X)
         X2 = scipy.ndimage.rotate(X2, angle, axes=(2,3), reshape=False, cval=fillColor)
 
@@ -160,7 +140,8 @@ def _xform_minibatch(X, rotate=False):
 
 def _training_loop(solver, X, Y, M, solverParam, batchDim, outDir,
                    omitLabels=[], Xvalid=None, Yvalid=None, syn_func=None):
-    """Performs CNN training.
+    """Main CNN training loop.
+                   
     """
     assert(batchDim[2] == batchDim[3])     # tiles must be square
 
@@ -342,7 +323,7 @@ def _training_loop(solver, X, Y, M, solverParam, batchDim, outDir,
         # ----- end one epoch -----
                 
  
-    # all done!    
+    # complete
     print "[train]:    all done!"
     return losses, acc
 
@@ -350,18 +331,19 @@ def _training_loop(solver, X, Y, M, solverParam, batchDim, outDir,
 
 
 if __name__ == "__main__":
+    args = get_args()
+    
     import caffe
     from caffe.proto import caffe_pb2
     from google.protobuf import text_format
 
-    #----------------------------------------
-    # parse information from the prototxt files
-    #----------------------------------------
-    args = get_args()
     trainDir, solverFn = os.path.split(args.solver)
     if len(trainDir):
         os.chdir(trainDir)
 
+    #----------------------------------------
+    # parse information from the prototxt files
+    #----------------------------------------
     solverParam = caffe_pb2.SolverParameter()
     text_format.Merge(open(solverFn).read(), solverParam)
 
@@ -388,6 +370,7 @@ if __name__ == "__main__":
     Y = emlib.load_cube(args.labelsFileName, np.float32)
 
     # usually we expect fewer slices in Z than pixels in X or Y.
+    # Make sure the dimensions look ok before proceeding.
     assert(X.shape[0] < X.shape[1])
     assert(X.shape[0] < X.shape[2])
 
@@ -397,10 +380,10 @@ if __name__ == "__main__":
     yAll = np.sort(np.unique(Y))
     omitLabels = eval(args.omitLabels)
     yAll = [y for y in yAll if y not in omitLabels]
-    Yhat = -1*np.ones(Y.shape, dtype=Y.dtype)   # default label is -1, which is omitted from evaluation
+    Ytmp = -1*np.ones(Y.shape, dtype=Y.dtype)   # default label is -1, which is omitted from evaluation
     for yIdx, y in enumerate(yAll):
-        Yhat[Y==y] = yIdx
-    Y = Yhat
+        Ytmp[Y==y] = yIdx
+    Y = Ytmp
  
     print('[train]: yAll is %s' % str(yAll))
     print('[train]: %d pixels will be omitted\n' % np.sum(Y==-1))
@@ -424,13 +407,13 @@ if __name__ == "__main__":
     print('[train]: training data shape: %s' % str(Xtrain.shape))
     print('[train]: validation data shape: %s' % str(Xvalid.shape))
 
-    # There may be reasons for not training on certain pixels other than
-    # class label (e.g. pixel intensity).  The mask allows the caller to
-    # specify which pixels to omit.
+    # There may be reasons for omitting certain voxels.  The optional
+    # mask volume allows the caller to specify which pixels to omit.
     if len(args.maskFileName):
         Mask = emlib.load_cube(args.maskFileName, dtype=np.bool)
         Mask = emlib.mirror_edges(Mask, borderSize)
     else:
+        # default is to evaluate all voxels
         Mask = np.ones(Xtrain.shape, dtype=np.bool)
         
     if np.any(Mask == 0):
@@ -440,7 +423,7 @@ if __name__ == "__main__":
     print('[train]: mask shape: %s' % str(Mask.shape))
     assert(np.all(Mask.shape == Xtrain.shape))
 
-    # choose how synthetic data generation will be done
+    # specify a synthetic data generating function
     if args.rotateData:
         syn_func = lambda V: _xform_minibatch(V, True)
         print('[train]:   WARNING: applying arbitrary rotations to data.  This may degrade performance in some cases...\n')
