@@ -1,63 +1,47 @@
-#  Runs a previously trained DNN on new electron microscopy (EM) data.
-#
-#  *** KEY ASSUMPTIONS ***
-#  o Assumes the network contains a layer named "prob" that contains the
-#    output probabilities for each class.
-#  o If you are extracting features, assumes feature are associated with
-#    an inner product layer called "ip1"
-#
-#
-#  EXAMPLE USAGE: (see also Makefile)
-#     PYTHONPATH=~/Apps/caffe-master/python ipython
-#     %run deploy.py  -s caffe_files/n3-solver.prototxt -m iter_04000.caffemodel -gpu 2
-#
-#  Note that we require the solver file (vs. just the network file)
-#  since that's where the CPU/GPU flag lives.  Alternatively, we could
-#  add a cpu/gpu flag to this script and only require the caller
-#  specify the network file (which would be more consistent with
-#  Caffe's command line API)
-#
-#
-#  Note that using a "brute force" approach of extracting every possible subtile from
-#  an image an then processing that tile using a CNN is fairly inefficient.  In particular,
-#  adjacent subtiles contain a substantial amount of overlap; e.g. the tiles centered
-#  on pixels x_{i,j} and x_{i,j+1} have all but the first and last column in common.
-#  For just the first CNN layer, most of the work in correlating the filters with the
-#  tile centered on x_{i,j} is repeated in x_{i,j+1}.  A dynamic programming approach
-#  could greatly help reduce this; e.g. see also [4].
-#
-# References:
-#   [1] Jia, Y. et. al. "Caffe: Convolutional Architecture for Fast Feature Embedding
-#       arXiv preprint, 2014.
-#
-#   [2] Ciresan, D., et al. "Deep neural networks segment neuronal membranes in
-#       electron microscopy images." NIPS 2012.
-#
-#   [3] https://groups.google.com/forum/#!topic/caffe-users/NKsSbZ3boGg
-#
-#   [4] Giusti et. al. "Fast Image Scanning with Deep Max-Pooling Convolutional
-#       Neural Networks," 2013
-#
-# Feb 2015, Mike Pekala
+"""  Runs a previously trained CNN on a new data volume.
+
+  *** KEY ASSUMPTIONS ***
+  o Assumes the network contains a layer named "prob" that contains the
+    output probabilities for each class.
+  o If you are extracting features, assumes feature are associated with
+    an inner product layer called "ip1"
 
 
-################################################################################
-# (c) [2014] The Johns Hopkins University / Applied Physics Laboratory All Rights Reserved.
-# Contact the JHU/APL Office of Technology Transfer for any additional rights.  www.jhuapl.edu/ott
-# 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-# 
-#    http://www.apache.org/licenses/LICENSE-2.0
-# 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
+  EXAMPLE USAGE: (see also Makefile)
+     PYTHONPATH=~/Apps/caffe-master/python ipython
+     %run deploy.py  -s caffe_files/n3-solver.prototxt -m iter_04000.caffemodel -gpu 2
 
+  Note that we require the solver file (vs. just the network file)
+  since that's where the CPU/GPU flag lives.  Alternatively, we could
+  add a cpu/gpu flag to this script and only require the caller
+  specify the network file (which would be more consistent with
+  Caffe's command line API)
+
+
+  Note that using a "brute force" approach of extracting every possible subtile from
+  an image an then processing that tile using a CNN is fairly inefficient.  In particular,
+  adjacent subtiles contain a substantial amount of overlap; e.g. the tiles centered
+  on pixels x_{i,j} and x_{i,j+1} have all but the first and last column in common.
+  For just the first CNN layer, most of the work in correlating the filters with the
+  tile centered on x_{i,j} is repeated in x_{i,j+1}.  A dynamic programming approach
+  could greatly help reduce this; e.g. see also [4].
+
+ References:
+   [1] Jia, Y. et. al. "Caffe: Convolutional Architecture for Fast Feature Embedding
+       arXiv preprint, 2014.
+
+   [2] Ciresan, D., et al. "Deep neural networks segment neuronal membranes in
+       electron microscopy images." NIPS 2012.
+
+   [3] https://groups.google.com/forum/#!topic/caffe-users/NKsSbZ3boGg
+
+   [4] Giusti et. al. "Fast Image Scanning with Deep Max-Pooling Convolutional
+       Neural Networks," 2013
+"""
+
+__author__ = "Mike Pekala"
+__copyright__ = "Copyright 2014, JHU/APL"
+__license__ = "Apache 2.0"
 
 
 import sys, os, argparse, time
