@@ -52,7 +52,7 @@ def get_args():
     """Command line parameters for the 'deploy' procedure.
     """
  
-    parser = argparse.ArgumentParser('Evaluate a DNN on a held-out data set')
+    parser = argparse.ArgumentParser()
 
     #----------------------------------------
     # Parameters for defining the neural network
@@ -181,6 +181,8 @@ def _eval_cube(net, X, M, batchDim, extractFeat=''):
     
 
 if __name__ == "__main__":
+    args = get_args()
+    
     import caffe
     from caffe.proto import caffe_pb2
     from google.protobuf import text_format
@@ -188,8 +190,6 @@ if __name__ == "__main__":
     #----------------------------------------
     # parse information from the prototxt files
     #----------------------------------------
-    args = get_args()
-        
     workDir, solverFn = os.path.split(args.solver)
     if len(workDir):
         os.chdir(workDir)

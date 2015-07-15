@@ -59,7 +59,7 @@ def get_args():
     """Command line parameters for the training procedure.
     """
     
-    parser = argparse.ArgumentParser('Train a neural network on the EM data set')
+    parser = argparse.ArgumentParser()
 
     #----------------------------------------
     # Parameters for defining and training the neural network
@@ -75,7 +75,7 @@ def get_args():
     # Data set parameters.  Assuming here a data cube, where each xy-plane is a "slice" of the cube.
     #----------------------------------------
 
-        parser.add_argument('-X', dest='trainFileName', type=str, required=True, 
+    parser.add_argument('-X', dest='trainFileName', type=str, required=True, 
                         help='Filename of the training data volume')
     parser.add_argument('-Y', dest='labelsFileName', type=str, required=True,
                         help='Filename of the training labels volume')
