@@ -52,4 +52,4 @@ You should only need to interact with train.py and deploy.py (unless you want to
                             (optional) set to 1 to apply arbitrary rotations to tiles
     
 For one example of how to use COCA with real data, please see the
-[vesicle](https://github.com/openconnectome/vesicle) project.  In particular, see the "vesicle-cnn" directory.
+[vesicle](https://github.com/openconnectome/vesicle) project.  In particular, see the code/vesicle-cnn directory.
