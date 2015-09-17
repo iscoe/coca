@@ -16,9 +16,20 @@
   Caffe's python interface.
 
   EXAMPLE USAGE:
+
+  # Create a training volume using the first 20 slices of ISBI 2012
   PYTHONPATH=/home/pekalmj1/Apps/caffe/python:.. python make_lmdb.py \
+          --use-slices "range(0,20)" \
           -X /home/pekalmj1/Data/EM_2012/train-volume.tif \
-          -Y /home/pekalmj1/Data/EM_2012/train-labels.tif
+          -Y /home/pekalmj1/Data/EM_2012/train-labels.tif \
+          -o train.lmdb
+
+  # Create a valiation volume using the last 10 slices of ISBI 2012
+  PYTHONPATH=/home/pekalmj1/Apps/caffe/python:.. python make_lmdb.py \
+          --use-slices "range(20,30)" \
+          -X /home/pekalmj1/Data/EM_2012/train-volume.tif \
+          -Y /home/pekalmj1/Data/EM_2012/train-labels.tif \
+          -o valid.lmdb
 
 
   Note: I make pretty liberal use of eval() below, so this is
@@ -100,6 +111,8 @@ def fix_class_labels(Yin, omitLabels):
 
 if __name__ == "__main__":
     args = get_args()
+    tileRadius = np.floor(args.tileSize/2)
+    nMiniBatch = 1000 # here, a "mini-batch" is really an LMDB transaction size
 
     # make sure we don't clobber an existing output
     if os.path.exists(args.outDir):
@@ -132,21 +145,20 @@ if __name__ == "__main__":
     print('[make_lmdb]: yAll is %s' % np.unique(Y))
     print('[make_lmdb]: %d pixels will be omitted\n' % np.sum(Y==-1))
 
-    # Create the output database
-    dbSize = (X.nbytes + Y.nbytes) * args.tileSize * 2 # this is an upper bound
+    # Create the output database.
+    # Multiply the actual size by a fudge factor to get a safe upper bound
+    dbSize = (X.nbytes * args.tileSize * args.tileSize + Y.nbytes) * 10
     env = lmdb.open(args.outDir, map_size=dbSize)
 
     # Extract all possible tiles.
     # This corresponds to extracting one "epoch" worth of tiles.
-    tileRadius = np.floor(args.tileSize/2)
     tileId = 0
-    nMiniBatch = 100
     lastChatter = -1
 
-    with env.begin(write=True) as txn:
-        it = emlib.stratified_interior_pixel_generator(Y, tileRadius, nMiniBatch, omitLabels=[-1])
-        for Idx, epochPct in it: 
-            # Process this mini-batch.
+    it = emlib.stratified_interior_pixel_generator(Y, tileRadius, nMiniBatch, omitLabels=[-1])
+    for Idx, epochPct in it: 
+        # Each mini-batch will be added to the database as a single transaction.
+        with env.begin(write=True) as txn:
             # Translate indices Idx -> tiles Xi and labels yi.
             for jj in range(Idx.shape[0]):
                 yi = int(Y[ Idx[jj,0], Idx[jj,1], Idx[jj,2] ])
@@ -171,9 +183,9 @@ if __name__ == "__main__":
                 txn.put(strId.encode('ascii'), datum.SerializeToString())
                 tileId += 1
 
-            if np.floor(epochPct) > lastChatter: 
-                print('[make_lmdb] %% %0.2f done' % (100*epochPct))
-                lastChatter = epochPct
+        #if np.floor(epochPct) > lastChatter: 
+        print('[make_lmdb] %% %0.2f done' % (100*epochPct))
+        lastChatter = epochPct
 
 
 
