@@ -158,6 +158,7 @@ if __name__ == "__main__":
     tileId = 0
     lastChatter = -1
     tic = time.time()
+    yCnt = np.zeros(len(np.unique(Y)))
 
     if np.any(Y > 0): 
         # generates a balanced training data set (subsamples and shuffles)
@@ -184,18 +185,16 @@ if __name__ == "__main__":
                 datum.channels = 1
                 datum.height = Xi.shape[0]
                 datum.width = Xi.shape[1]
-                try: 
-                    datum.data = Xi.tostring() # for numpy < 1.9
-                except AttributeError:
-                    datum.data = Xi.tobytes()
+                datum.data = Xi.tostring() # use tobytes() for newer numpy
                 datum.label = int(yi)
                 strId = '{:08}'.format(tileId)
 
                 txn.put(strId.encode('ascii'), datum.SerializeToString())
                 tileId += 1
+                yCnt[yi] += 1
 
         #if np.floor(epochPct) > lastChatter: 
-        print('[make_lmdb] %% %0.2f done (%0.2f min)' % ((100*epochPct), (time.time() - tic)/60))
+        print('[make_lmdb] %% %0.2f done (%0.2f min;   yCnt=%s)' % ((100*epochPct), (time.time() - tic)/60, str(yCnt)))
         lastChatter = epochPct
 
 
