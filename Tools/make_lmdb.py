@@ -37,10 +37,6 @@
           -X /home/pekalmj1/Data/EM_2012/test-volume.tif \
           -o test.lmdb
 
-
-  Note: I make pretty liberal use of eval() below, so this is
-        not very "secure"...
-
 """
 
 __author__ = "Mike Pekala"
@@ -125,6 +121,7 @@ if __name__ == "__main__":
         raise RuntimeError('Output path "%s" already exists; please move out of the way and try again' % args.outDir)
 
 
+    # load the data volumes (EM image and labels, if any)
     print('[make_lmdb]: loading EM data file: %s' % args.emFileName)
     X = emlib.load_cube(args.emFileName, np.float32)
 
@@ -169,12 +166,13 @@ if __name__ == "__main__":
         # enumerates all possible tiles in order (no shuffling)
         it = emlib.interior_pixel_generator(X, tileRadius, nMiniBatch)
 
+
     for Idx, epochPct in it: 
         # Each mini-batch will be added to the database as a single transaction.
         with env.begin(write=True) as txn:
             # Translate indices Idx -> tiles Xi and labels yi.
             for jj in range(Idx.shape[0]):
-                yi = int(Y[ Idx[jj,0], Idx[jj,1], Idx[jj,2] ])
+                yi = Y[ Idx[jj,0], Idx[jj,1], Idx[jj,2] ]
                 a = Idx[jj,1] - tileRadius
                 b = Idx[jj,1] + tileRadius + 1
                 c = Idx[jj,2] - tileRadius
@@ -187,10 +185,10 @@ if __name__ == "__main__":
                 datum.height = Xi.shape[0]
                 datum.width = Xi.shape[1]
                 try: 
-                    datum.data = Xi.tobytes()
-                except AttributeError:
                     datum.data = Xi.tostring() # for numpy < 1.9
-                datum.label = yi
+                except AttributeError:
+                    datum.data = Xi.tobytes()
+                datum.label = int(yi)
                 strId = '{:08}'.format(tileId)
 
                 txn.put(strId.encode('ascii'), datum.SerializeToString())
