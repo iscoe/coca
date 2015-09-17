@@ -31,9 +31,9 @@
           -Y /home/pekalmj1/Data/EM_2012/train-labels.tif \
           -o valid.lmdb
 
-  # Create a test volume using ISBI 2012 test
+  # Create a test volume using (a subset of) ISBI 2012 test
   PYTHONPATH=/home/pekalmj1/Apps/caffe/python:.. python make_lmdb.py \
-          --use-slices "range(0,30)" \
+          --use-slices "range(0,5)" \
           -X /home/pekalmj1/Data/EM_2012/test-volume.tif \
           -o test.lmdb
 
@@ -49,7 +49,7 @@ __license__ = "Apache 2.0"
 
 
 
-import argparse, os.path
+import argparse, os.path, time
 import numpy as np
 import lmdb
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
         assert(Y.shape == X.shape)
     else:
         print('[make_lmdb]: no labels file; assuming this is a test volume')
-        Y = np.zeros(size(X))
+        Y = np.zeros(X.shape)
    
     # usually we expect fewer slices in Z than pixels in X or Y.
     # Make sure the dimensions look ok before proceeding.
@@ -160,6 +160,7 @@ if __name__ == "__main__":
     # This corresponds to extracting one "epoch" worth of tiles.
     tileId = 0
     lastChatter = -1
+    tic = time.time()
 
     it = emlib.stratified_interior_pixel_generator(Y, tileRadius, nMiniBatch, omitLabels=[-1])
     for Idx, epochPct in it: 
@@ -190,7 +191,7 @@ if __name__ == "__main__":
                 tileId += 1
 
         #if np.floor(epochPct) > lastChatter: 
-        print('[make_lmdb] %% %0.2f done' % (100*epochPct))
+        print('[make_lmdb] %% %0.2f done (%0.2f min)' % ((100*epochPct), (time.time() - tic)/60))
         lastChatter = epochPct
 
 
