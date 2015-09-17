@@ -174,11 +174,13 @@ if __name__ == "__main__":
             # Translate indices Idx -> tiles Xi and labels yi.
             for jj in range(Idx.shape[0]):
                 yi = Y[ Idx[jj,0], Idx[jj,1], Idx[jj,2] ]
+                yi = int(yi)
                 a = Idx[jj,1] - tileRadius
                 b = Idx[jj,1] + tileRadius + 1
                 c = Idx[jj,2] - tileRadius
                 d = Idx[jj,2] + tileRadius + 1
                 Xi = X[ Idx[jj,0], a:b, c:d ]
+                Xi = Xi.astype(np.uint8)  # this cast is critical!! otherwise, Caffe just flails...
                 assert(Xi.shape == (args.tileSize, args.tileSize))
 
                 datum = caffe.proto.caffe_pb2.Datum()
@@ -186,7 +188,7 @@ if __name__ == "__main__":
                 datum.height = Xi.shape[0]
                 datum.width = Xi.shape[1]
                 datum.data = Xi.tostring() # use tobytes() for newer numpy
-                datum.label = int(yi)
+                datum.label = yi
                 strId = '{:08}'.format(tileId)
 
                 txn.put(strId.encode('ascii'), datum.SerializeToString())
