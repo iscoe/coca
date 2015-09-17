@@ -31,6 +31,12 @@
           -Y /home/pekalmj1/Data/EM_2012/train-labels.tif \
           -o valid.lmdb
 
+  # Create a test volume using ISBI 2012 test
+  PYTHONPATH=/home/pekalmj1/Apps/caffe/python:.. python make_lmdb.py \
+          --use-slices "range(0,30)" \
+          -X /home/pekalmj1/Data/EM_2012/test-volume.tif \
+          -o test.lmdb
+
 
   Note: I make pretty liberal use of eval() below, so this is
         not very "secure"...
