@@ -162,7 +162,13 @@ if __name__ == "__main__":
     lastChatter = -1
     tic = time.time()
 
-    it = emlib.stratified_interior_pixel_generator(Y, tileRadius, nMiniBatch, omitLabels=[-1])
+    if np.any(Y > 0): 
+        # generates a balanced training data set (subsamples and shuffles)
+        it = emlib.stratified_interior_pixel_generator(Y, tileRadius, nMiniBatch, omitLabels=[-1])
+    else:
+        # enumerates all possible tiles in order (no shuffling)
+        it = emlib.interior_pixel_generator(X, tileRadius, nMiniBatch)
+
     for Idx, epochPct in it: 
         # Each mini-batch will be added to the database as a single transaction.
         with env.begin(write=True) as txn:
