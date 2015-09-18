@@ -20,22 +20,22 @@
   # Create a training volume using the first 20 slices of ISBI 2012
   PYTHONPATH=/home/pekalmj1/Apps/caffe/python:.. python make_lmdb.py \
           --use-slices "range(0,20)" \
-          -X /home/pekalmj1/Data/EM_2012/train-volume.tif \
-          -Y /home/pekalmj1/Data/EM_2012/train-labels.tif \
-          -o train.lmdb
+          -X ../CcT_Experiment/ISBI2012/train-volume.tif \
+          -Y ../CcT_Experiment/ISBI2012/train-labels.tif \
+          -o ../CcT_Experiment/train.lmdb
 
   # Create a valiation volume using the last 10 slices of ISBI 2012
   PYTHONPATH=/home/pekalmj1/Apps/caffe/python:.. python make_lmdb.py \
           --use-slices "range(20,30)" \
-          -X /home/pekalmj1/Data/EM_2012/train-volume.tif \
-          -Y /home/pekalmj1/Data/EM_2012/train-labels.tif \
-          -o valid.lmdb
+          -X ../CcT_Experiment/ISBI2012/train-volume.tif \
+          -Y ../CcT_Experiment/ISBI2012/train-labels.tif \
+          -o ../CcT_Experiment/valid.lmdb
 
   # Create a test volume using (a subset of) ISBI 2012 test
   PYTHONPATH=/home/pekalmj1/Apps/caffe/python:.. python make_lmdb.py \
           --use-slices "range(0,5)" \
-          -X /home/pekalmj1/Data/EM_2012/test-volume.tif \
-          -o test.lmdb
+          -X ../CcT_Experiment/ISBI2012/test-volume.tif \
+          -o ../CcT_Experiment/test.lmdb
 
 """
 
