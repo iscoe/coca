@@ -89,7 +89,7 @@ def get_args():
     parser.add_argument('--num-examples', dest='maxNumExamples', 
             type=int, default=sys.maxint,
             help='Maximum number of examples to extract (default is none)')
-    
+
     return parser.parse_args()
 
 
@@ -114,8 +114,7 @@ def fix_class_labels(Yin, omitLabels):
 
 
 
-def main():
-    args = get_args()
+def main(args):
     tileRadius = np.floor(args.tileSize/2)
     nMiniBatch = 1000 # here, a "mini-batch" specifies LMDB transaction size
 
@@ -213,7 +212,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = get_args()
+    main(args)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
