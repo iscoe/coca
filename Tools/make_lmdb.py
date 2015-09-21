@@ -144,7 +144,9 @@ def main(args):
     # Identify the subset of the data to use for training.
     sliceIdx = eval(args.slicesExpr)
     X = X[sliceIdx, :, :]  # python puts the z dimension first...
+    X = X.astype(np.uint8)  # critical!! otherwise, Caffe just flails...
     Y = Y[sliceIdx, :, :]
+
 
     print('[make_lmdb]: EM volume shape: %s' % str(X.shape))
     print('[make_lmdb]: yAll is %s' % np.unique(Y))
@@ -187,7 +189,6 @@ def main(args):
                 c = Idx[jj,2] - tileRadius
                 d = Idx[jj,2] + tileRadius + 1
                 Xi = X[ Idx[jj,0], a:b, c:d ]
-                Xi = Xi.astype(np.uint8)  # this cast is critical!! otherwise, Caffe just flails...
                 assert(Xi.shape == (args.tileSize, args.tileSize))
 
                 datum = caffe.proto.caffe_pb2.Datum()
