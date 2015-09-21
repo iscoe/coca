@@ -45,7 +45,7 @@ __license__ = "Apache 2.0"
 
 
 
-import argparse, os.path, time
+import sys, argparse, os.path, time
 import numpy as np
 import lmdb
 
@@ -85,6 +85,10 @@ def get_args():
     parser.add_argument('--use-slices', dest='slicesExpr', 
             type=str, default='range(0,20)', 
             help='A python-evaluatable string indicating which slices should be used from the volumes')
+
+    parser.add_argument('--num-examples', dest='maxNumExamples', 
+            type=int, default=sys.maxint,
+            help='Maximum number of examples to extract (default is none)')
     
     return parser.parse_args()
 
@@ -169,6 +173,11 @@ if __name__ == "__main__":
 
 
     for Idx, epochPct in it: 
+        # respect upper bound on number of examples
+        if tileId > args.maxNumExamples: 
+            print('[make_lmdb]: stopping at %d (max number of examples reached\n)' % (tileId-1))
+            break
+
         # Each mini-batch will be added to the database as a single transaction.
         with env.begin(write=True) as txn:
             # Translate indices Idx -> tiles Xi and labels yi.
@@ -194,6 +203,10 @@ if __name__ == "__main__":
                 txn.put(strId.encode('ascii'), datum.SerializeToString())
                 tileId += 1
                 yCnt[yi] += 1
+
+                # check early termination conditions
+                if tileId > args.maxNumExamples:
+                    break
 
         #if np.floor(epochPct) > lastChatter: 
         print('[make_lmdb] %% %0.2f done (%0.2f min;   yCnt=%s)' % ((100*epochPct), (time.time() - tic)/60, str(yCnt)))
