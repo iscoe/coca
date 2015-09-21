@@ -106,19 +106,18 @@ def fix_class_labels(Yin, omitLabels):
     yAll = np.sort(np.unique(Yin))
     yAll = [y for y in yAll if y not in omitLabels]
 
-    Yout = -1*np.ones(Y.shape, dtype=Y.dtype)
+    Yout = -1*np.ones(Yin.shape, dtype=Yin.dtype)
     for yIdx, y in enumerate(yAll):
-        Yout[Y==y] = yIdx
+        Yout[Yin==y] = yIdx
 
     return Yout
 
 
 
-
-if __name__ == "__main__":
+def main():
     args = get_args()
     tileRadius = np.floor(args.tileSize/2)
-    nMiniBatch = 1000 # here, a "mini-batch" is really an LMDB transaction size
+    nMiniBatch = 1000 # here, a "mini-batch" specifies LMDB transaction size
 
     # make sure we don't clobber an existing output
     if os.path.exists(args.outDir):
@@ -212,6 +211,9 @@ if __name__ == "__main__":
         print('[make_lmdb] %% %0.2f done (%0.2f min;   yCnt=%s)' % ((100*epochPct), (time.time() - tic)/60, str(yCnt)))
         lastChatter = epochPct
 
+
+if __name__ == "__main__":
+    main()
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
