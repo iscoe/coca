@@ -47,11 +47,11 @@ S_VALID="range(20,30)"
 # The maximum number of tiles to extract
 N_TILES=100000
 
-# Specify which Caffe model to use in all timing experiments.
-CMODEL=_iter_6000.caffemodel
+# Specify which Caffe model to use in timing experiments.
+CMODEL=_iter_10000.caffemodel
 
 # Number of iterations to use in timing experiments
-NITERS=30
+NITERS=100
 
 
 TAR=CcT-experiment.tar
@@ -111,11 +111,11 @@ cct-train:
 # Timing estimate for caffe
 #-------------------------------------------------------------------------------
 caffe-time-gpu:
-	caffe time -model lenet-net-caffe.prototxt -weights $(CMODEL) -iterations $(NITERS) -gpu 1
+	caffe time -model lenet-net.prototxt -weights $(CMODEL) -iterations $(NITERS) -gpu 2
 
 
 caffe-time-cpu:
-	caffe time -model n3-net-caffe.prototxt -weights $(CMODEL) -iterations $(NITERS)
+	caffe time -model lenet-net.prototxt -weights $(CMODEL) -iterations $(NITERS)
 
 
 #-------------------------------------------------------------------------------
