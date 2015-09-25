@@ -7,11 +7,11 @@
 #      make lmdb-valid
 #
 # 2. To train a model using Caffe:
-#      make train
+#      make caffe-train
 # 
 # 3. To generate timing estimates for Caffe:
-#      make time-caffe-gpu
-#      make time-caffe-cpu
+#      make caffe-time-gpu
+#      make caffe-time-cpu
 # 
 # 4. To generate timing estimates for Caffe con Troll (CcT):
 #      TODO 
@@ -99,21 +99,22 @@ lmdb-valid:
 #-------------------------------------------------------------------------------
 # Train a classifier
 #-------------------------------------------------------------------------------
-train-caffe:
-	caffe train -solver n3-solver-caffe.prototxt -gpu 1
+caffe-train:
+	caffe train -solver lenet-solver.prototxt -gpu 1
 
-train-cct:
-	caffe-ct train n3-solver-cct.prototxt
+
+cct-train:
+	caffe-ct train n3-solver.prototxt
 
 
 #-------------------------------------------------------------------------------
 # Timing estimate for caffe
 #-------------------------------------------------------------------------------
-time-caffe-gpu:
-	caffe time -model n3-net-caffe.prototxt -weights $(CMODEL) -iterations $(NITERS) -gpu 1
+caffe-time-gpu:
+	caffe time -model lenet-net-caffe.prototxt -weights $(CMODEL) -iterations $(NITERS) -gpu 1
 
 
-time-caffe-cpu:
+caffe-time-cpu:
 	caffe time -model n3-net-caffe.prototxt -weights $(CMODEL) -iterations $(NITERS)
 
 
