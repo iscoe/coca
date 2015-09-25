@@ -47,8 +47,9 @@ S_VALID="range(20,30)"
 # The maximum number of tiles to extract
 N_TILES=100000
 
-# Specify which Caffe model to use in timing experiments.
-CMODEL=_iter_10000.caffemodel
+# Specify which model to use in timing experiments.
+CAFFE_MODEL=_iter_10000.caffemodel
+CCT_MODEL=trained_model.bin.25-09-2015-04-46-54
 
 # Number of iterations to use in timing experiments
 NITERS=100
@@ -97,36 +98,30 @@ lmdb-valid:
 
 
 #-------------------------------------------------------------------------------
-# Train a classifier
+# Targets for working with Caffe
 #-------------------------------------------------------------------------------
 caffe-train:
 	nohup caffe train -solver lenet-solver.prototxt -gpu 1 > caffe.train.out &
 
 
+caffe-time-gpu:
+	caffe time -model lenet-net.prototxt -weights $(CAFFE_MODEL) -iterations $(NITERS) -gpu 2
+
+
+caffe-time-cpu:
+	nohup caffe time -model lenet-net.prototxt -weights $(CAFFE_MODEL) -iterations $(NITERS) > caffe.time.cpu.out &
+
+
+#-------------------------------------------------------------------------------
+# Targets for working with CcT
+#-------------------------------------------------------------------------------
 cct-train:
 	nohup caffe-ct train lenet-solver.prototxt > cct.train.out &
 
 
-#-------------------------------------------------------------------------------
-# Timing estimate for caffe
-#-------------------------------------------------------------------------------
-caffe-time-gpu:
-	caffe time -model lenet-net.prototxt -weights $(CMODEL) -iterations $(NITERS) -gpu 2
+cct-time-cpu:
+	nohup caffe-ct test lenet-solver.prototxt -i $(CCT_MODEL) > cct.time.cpu.out &
 
-
-caffe-time-cpu:
-	caffe time -model lenet-net.prototxt -weights $(CMODEL) -iterations $(NITERS)
-
-
-#-------------------------------------------------------------------------------
-# Timing estimate for CcT
-#-------------------------------------------------------------------------------
-time-cct-cpu:
-	caffe-ct train n3-solver-cct.prototxt
-
-
-time-cct-gpu:
-	echo "TODO"
 
 
 clean :
