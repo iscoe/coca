@@ -104,7 +104,7 @@ caffe-train:
 
 
 cct-train:
-	nohup caffe-ct train n3-solver.prototxt > cct.train.out &
+	nohup caffe-ct train lenet-solver.prototxt > cct.train.out &
 
 
 #-------------------------------------------------------------------------------
