@@ -100,11 +100,11 @@ lmdb-valid:
 # Train a classifier
 #-------------------------------------------------------------------------------
 caffe-train:
-	caffe train -solver lenet-solver.prototxt -gpu 1
+	nohup caffe train -solver lenet-solver.prototxt -gpu 1 > caffe.train.out &
 
 
 cct-train:
-	caffe-ct train n3-solver.prototxt
+	nohup caffe-ct train n3-solver.prototxt > cct.train.out &
 
 
 #-------------------------------------------------------------------------------
