@@ -8,8 +8,10 @@
 #      make lmdb-train
 #      make lmdb-valid
 #
-# 2. To train a model using Caffe:
+# 2. To train a model using Caffe (using the default CNN)
 #      make caffe-train
+#    Alternatively, to specify a custom CNN (and different GPU):
+#      make CNN=n3 GPU=2 caffe-train
 # 
 # 3. To generate timing estimates for Caffe:
 #      make caffe-time-gpu
@@ -19,14 +21,15 @@
 #      TODO 
 #
 # NOTES:
-# For expediency, we create LMDB databases that contain many 
-# pre-computed tiles; in the past we created these tiles "lazily" to
-# avoid creating large data sets with lots of redundancy.
+# o For expediency, we create LMDB databases that contain many 
+#   pre-computed tiles; in the past we created these tiles "lazily" to
+#   avoid creating large data sets with lots of redundancy.
 #
-# A future possible direction is some combination of CcT and 
-# dense classification techniques (e.g. the semantic segmentation
-# approach of Long et. al.)
+# o A future possible direction is some combination of CcT and 
+#   dense classification techniques (e.g. the semantic segmentation
+#   approach of Long et. al.)
 #-------------------------------------------------------------------------------
+
 
 #-------------------------------------------------------------------------------
 # PARAMETERS
@@ -35,11 +38,21 @@
 # the experimental setup or match the setup of your local system.
 #-------------------------------------------------------------------------------
 
+# Specify where pycaffe is located on your system
+PYCAFFE=/home/pekalmj1/Apps/caffe/python
+
+
 # Specify which CNN model to use.
 # For now, the main options are 'lenet' or 'n3'
 CNN=lenet
 SOLVER=$(CNN)/$(CNN)-solver.prototxt
 NET=$(CNN)/$(CNN)-net.prototxt
+
+
+# Any pixels whose intensity is > this value will be omitted
+# from the analysis (these are trivially non-membrane).  Set
+# to 256 if you want to omit nothing.
+MAX_BRIGHT=142
 
 
 # Define the subset of ISBI2012 to use for train and validation.
@@ -48,8 +61,10 @@ S_TRAIN="range(0,20)"
 S_VALID="range(20,30)"
 
 
-# Specify where pycaffe is located on your system
-PYCAFFE=/home/pekalmj1/Apps/caffe/python
+# Specify which model to use in timing experiments.
+CAFFE_MODEL=_iter_10000.caffemodel
+CCT_MODEL=trained_model.bin.25-09-2015-04-46-54
+
 
 
 #-------------------------------------------------------------------------------
@@ -68,16 +83,17 @@ PY=PYTHONPATH=$(PYCAFFE):$(BASE_DIR) python
 # The maximum number of tiles to extract
 N_TILES=100000
 
-# Specify which model to use in timing experiments.
-CAFFE_MODEL=_iter_10000.caffemodel
-CCT_MODEL=trained_model.bin.25-09-2015-04-46-54
 
 # Number of iterations to use in timing experiments
 NITERS=100
 
 TAR=CcT-experiment.tar
 
+GPU=1
 
+
+#-------------------------------------------------------------------------------
+# Administrative targets
 #-------------------------------------------------------------------------------
 default:
 	echo "please explicitly choose a target"
@@ -93,8 +109,9 @@ tar :
 	pushd $(BASE_DIR)/.. && tar rvf $(TAR) `find ./coca -name n3-\* -print`
 
 
+
 #-------------------------------------------------------------------------------
-# Targets for creating LMDB databases
+# Creating LMDB databases
 #-------------------------------------------------------------------------------
 
 # Creates an LMDB data set for training.
@@ -104,6 +121,7 @@ lmdb-train:
 		-X ./ISBI2012/train-volume.tif \
 		-Y ./ISBI2012/train-labels.tif \
 		--num-examples $(N_TILES) \
+		--max-brightness $(MAX_BRIGHT) \
 		-o ./train.lmdb
 
 
@@ -114,26 +132,41 @@ lmdb-valid:
 		-X ./ISBI2012/train-volume.tif \
 		-Y ./ISBI2012/train-labels.tif \
 		--num-examples $(N_TILES) \
+		--max-brightness $(MAX_BRIGHT) \
 		-o ./valid.lmdb
 
 
+# Deletes LMDB directories
+lmdb-clean:
+		\rm -rf ./train.lmdb ./valid.lmdb
+
+
 #-------------------------------------------------------------------------------
-# Targets for working with Caffe
+# Working with Caffe
 #-------------------------------------------------------------------------------
+
+# Train a model
 caffe-train:
-	nohup caffe train -solver $(SOLVER) -gpu 1 > caffe.train.out &
+	nohup caffe train -solver $(SOLVER) -gpu $(GPU) > caffe.$(CNN).train.out &
 
 
+# Produce timing estimates; for GPU mode
 caffe-time-gpu:
-	caffe time -model $(NET) -weights $(CAFFE_MODEL) -iterations $(NITERS) -gpu 2
+	caffe time -model $(NET) -weights $(CAFFE_MODEL) -iterations $(NITERS) -gpu $(GPU)
 
 
+# Produce timing estimates; for CPU mode
 caffe-time-cpu:
 	nohup caffe time -model $(NET) -weights $(CAFFE_MODEL) -iterations $(NITERS) > caffe.time.cpu.out &
 
 
+# Use this to extract probability maps.
+# For now, we use PyCaffe for this (already in hand, and time is short)
+caffe-probs:
+
+
 #-------------------------------------------------------------------------------
-# Targets for working with CcT
+# Working with CcT
 #-------------------------------------------------------------------------------
 cct-train:
 	nohup caffe-ct train $(SOLVER) > cct.train.out &
