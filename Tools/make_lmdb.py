@@ -55,6 +55,9 @@ import emlib
 
 
 
+def numel(X): return np.prod(X.shape)
+
+
 def get_args():
     """Command line parameters for the training procedure.
     """
@@ -89,6 +92,10 @@ def get_args():
     parser.add_argument('--num-examples', dest='maxNumExamples', 
             type=int, default=sys.maxint,
             help='Maximum number of examples to extract (default is none)')
+
+    parser.add_argument('--max-brightness', dest='maxBrightness', 
+            type=int, default=sys.maxint,
+            help='Will only extract tiles corresponding to pixels whose brightness is below this threshold.')
 
     return parser.parse_args()
 
@@ -135,7 +142,8 @@ def main(args):
     else:
         print('[make_lmdb]: no labels file; assuming this is a test volume')
         Y = np.zeros(X.shape)
-   
+
+
     # usually we expect fewer slices in Z than pixels in X or Y.
     # Make sure the dimensions look ok before proceeding.
     assert(X.shape[0] < X.shape[1])
@@ -147,10 +155,18 @@ def main(args):
     X = X.astype(np.uint8)  # critical!! otherwise, Caffe just flails...
     Y = Y[sliceIdx, :, :]
 
+    # any pixels that are too bright will be ignored.
+    if args.maxBrightness < sys.maxint:
+        nTooBright = np.sum(X > args.maxBrightness)
+        Y[X > args.maxBrightness] = -1
+    else:
+        nTooBright = 0
 
     print('[make_lmdb]: EM volume shape: %s' % str(X.shape))
     print('[make_lmdb]: yAll is %s' % np.unique(Y))
-    print('[make_lmdb]: %d pixels will be omitted\n' % np.sum(Y==-1))
+    print('[make_lmdb]: %0.2f%% pixels will be omitted' % (100.0*np.sum(Y==-1)/numel(Y)))
+    print('[make_lmdb]:   (%0.2f%% of these were too bright)' % (100.0*nTooBright/numel(Y)))
+    print('')
 
     # Create the output database.
     # Multiply the actual size by a fudge factor to get a safe upper bound
