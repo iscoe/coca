@@ -5,11 +5,6 @@
 
 name: "CiresanN3"
 
-#input: "data"
-#input_dim: 100
-#input_dim: 1
-#input_dim: 65
-#input_dim: 65
 
 layers {
   type: MEMORY_DATA
