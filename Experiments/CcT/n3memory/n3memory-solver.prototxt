@@ -3,7 +3,7 @@
 #       https://github.com/BVLC/caffe/issues/912
 
 # The train/test net protocol buffer definition
-net: "./n3/n3-net.prototxt"
+net: "./n3memory/n3memory-net.prototxt"
 
 # The base learning rate, momentum and the weight decay of the network.
 base_lr: 0.001
@@ -23,7 +23,7 @@ max_iter: 200000
 
 # snapshot intermediate results
 snapshot: 2000
-snapshot_prefix: "./n3/"
+snapshot_prefix: "./n3memory/"
 
 # solver mode: CPU or GPU
 solver_mode: CPU   # CPU or GPU
