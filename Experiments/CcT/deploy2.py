@@ -61,7 +61,7 @@ def get_args():
 		    default='', 
 		    help='Probability output file (full path)')
     parser.add_argument('--max-brightness', 
-		    dest='maxBrightness', type=str, 
+		    dest='maxBrightness', type=int, 
 		    default=sys.maxint,
 		    help='Only evaluates pixels with this brightness')
 
@@ -131,7 +131,7 @@ def _eval_cube(net, X, M, batchDim):
         # provide feedback on progress so far    
         elapsed = (time.time() - tic) / 60.
         if (lastChatter is None) or ((elapsed - lastChatter) > 2):
-            print('[deploy]    %0.2f min elapsed (%0.2f CNN min, %0.2f%% complete)' % (elapsed, cnnTime/60, 100*pct))
+            print('[deploy]:  %0.2f min elapsed (%0.2f CNN min, %0.2f%% complete)' % (elapsed, cnnTime/60., 100.*pct))
             sys.stdout.flush()
             lastChatter = elapsed
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     if len(args.outFileNameY):
         outFileNameY = args.outFileNameY
     else:
-        outFileNameY = os.path.join(os.path.split(args.dataFileName)[0], 'Yhat_' + os.path.split(args.dataFileName)[-1])
+        outFileNameY = os.path.join(os.path.split(args.netFile)[0], 'Yhat_' + os.path.split(args.dataFileName)[-1])
 
 
 
@@ -181,10 +181,7 @@ if __name__ == "__main__":
     # and can be omitted.
     Mask = np.ones(X.shape, dtype=np.bool)
     if args.maxBrightness < sys.maxint:
-	    Mask[X > args.maxBrightness] = 0
-        
-    if np.any(Mask == 0):
-        nz = np.sum(Mask==0)
+	    Mask[X > args.maxBrightness] = False
 
     # rescale (assumes this was done during training!)
     X = X / 255.0
@@ -212,10 +209,14 @@ if __name__ == "__main__":
     #----------------------------------------
     # Do it
     #----------------------------------------
+    print('==========================================================')
+    print(args)
+    print('')
     print('[deploy]: data shape: %s' % str(X.shape))
     print('[deploy]: batch shape: %s' % str(batchDim))
     print('[deploy]: probability output file: %s' % outFileNameY)
     print('[deploy]: mask is omitting %0.2f%% of the raw data' % (100 * np.sum(Mask==0) / numel(Mask)))
+    print('==========================================================')
     sys.stdout.flush()
 
     Yhat = _eval_cube(net, X, Mask, batchDim)
