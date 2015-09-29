@@ -251,6 +251,9 @@ layer {
   name: "prob"
   top: "prob"
   bottom: "ip2"
+  include {
+    phase: TEST
+  }
 }
 
 
