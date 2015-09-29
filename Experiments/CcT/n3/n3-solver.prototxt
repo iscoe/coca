@@ -1,0 +1,29 @@
+# NOTE: disable all the parameters related to testing; these
+#       are evidently incompatible with the memory data layer:
+#       https://github.com/BVLC/caffe/issues/912
+
+# The train/test net protocol buffer definition
+net: "n3-net.prototxt"
+
+# The base learning rate, momentum and the weight decay of the network.
+base_lr: 0.001
+momentum: 0.0                  # in original Theano model, we didn't use momentum
+stepsize: 70000
+gamma: 0.1
+#weight_decay: 0.004           # not supported yet
+
+# The learning rate policy
+lr_policy: "step"
+
+# Display every 200 iterations
+display: 200
+
+# The maximum number of iterations
+max_iter: 200000
+
+# snapshot intermediate results
+snapshot: 2000
+snapshot_prefix: "./"
+
+# solver mode: CPU or GPU
+solver_mode: CPU   # CPU or GPU
