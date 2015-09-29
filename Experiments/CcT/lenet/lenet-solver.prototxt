@@ -5,7 +5,7 @@ net: "lenet/lenet-net.prototxt"
 
 # test_iter     := how many forward passes the test should carry out.
 # test_interval := how frequently to test (every N training iterations)
-test_iter: 100
+test_iter: 1000  #  100000 / 100 = 1000
 test_interval: 500
 
 

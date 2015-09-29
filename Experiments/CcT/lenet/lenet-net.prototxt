@@ -15,8 +15,11 @@ layer {
   }
   data_param {
     source: "train.lmdb"
-    batch_size: 64
+    batch_size: 100
     backend: LMDB
+  }
+  image_data_param {
+    shuffle: true
   }
 }
 layer {
@@ -32,7 +35,7 @@ layer {
   }
   data_param {
     source: "valid.lmdb"
-    batch_size: 64
+    batch_size: 100
     backend: LMDB
   }
 }
