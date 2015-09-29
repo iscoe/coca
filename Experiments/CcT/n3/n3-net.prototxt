@@ -244,3 +244,13 @@ layer {
 }
 
 
+# This layer only exists to facilitate extracting predictions from the network.
+# For training, SoftmaxWithLoss alone is sufficient.
+layer {
+  type: "Softmax"
+  name: "prob"
+  top: "prob"
+  bottom: "ip2"
+}
+
+
