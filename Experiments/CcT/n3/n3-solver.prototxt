@@ -9,13 +9,15 @@ test_interval: 500
 
 # The base learning rate, momentum and the weight decay of the network.
 base_lr: 0.001
-momentum: 0.0                  # in original Theano model, we didn't use momentum
-stepsize: 70000
-gamma: 0.1
-#weight_decay: 0.004           # not supported yet
 
-# The learning rate policy
-lr_policy: "step"
+#momentum: 0.0                  # in Theano model, we didn't use momentum
+#stepsize: 70000
+#gamma: 0.1
+#lr_policy: "step"
+
+momentum: 0.9
+weight_decay: 0.0005
+lr_policy: "inv"
 
 # Display every 200 iterations
 display: 200
