@@ -1,5 +1,7 @@
 # The train/test net protocol buffer definition
-net: "lenet-net.prototxt"
+# Assumes you will be running Caffe/CcT from the parent directory
+
+net: "lenet/lenet-net.prototxt"
 
 # test_iter     := how many forward passes the test should carry out.
 # test_interval := how frequently to test (every N training iterations)
