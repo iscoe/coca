@@ -67,6 +67,8 @@ MAX_BRIGHT=142
 S_TRAIN="range(0,10)"
 S_VALID="range(10,20)"
 
+# The maximum number of tiles to extract
+N_TILES=200000
 
 # Specify which model to use in timing experiments.
 CAFFE_MODEL=$(CNN)/_iter_15000.caffemodel
@@ -86,10 +88,6 @@ BASE_DIR=../..
 PY=PYTHONPATH=$(PYCAFFE):$(BASE_DIR) python
 # for profiling (optional)
 #PY=PYTHONPATH=$(PYCAFFE):.. python -m cProfile -s cumtime
-
-# The maximum number of tiles to extract
-N_TILES=100000
-
 
 # Number of iterations to use in timing experiments
 NITERS=100
