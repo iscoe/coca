@@ -69,7 +69,7 @@ S_VALID="range(10,20)"
 
 
 # Specify which model to use in timing experiments.
-CAFFE_MODEL=$(CNN)/_iter_20000.caffemodel  # TODO: increase this value!!
+CAFFE_MODEL=$(CNN)/_iter_15000.caffemodel
 CCT_MODEL=trained_model.bin.25-09-2015-04-46-54
 
 
