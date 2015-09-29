@@ -180,7 +180,7 @@ def main(args):
     tileId = 0
     lastChatter = -1
     tic = time.time()
-    yCnt = np.zeros(len(np.unique(Y)))
+    yCnt = np.zeros(sum(np.unique(Y) >= 0))
 
     if np.any(Y > 0): 
         # generates a balanced training data set (subsamples and shuffles)
