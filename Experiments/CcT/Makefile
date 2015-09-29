@@ -8,9 +8,9 @@
 #      make lmdb-train
 #      make lmdb-valid
 #
-# 2. To train a model using Caffe (using the default CNN)
-#      make caffe-train
-#    Alternatively, to specify a custom CNN (and different GPU):
+# 2. Train a lenet model and, in parallel (and on a different GPU)
+#    also train up a n3 model:
+#      make CNN=lenet GPU=1 caffe-train
 #      make CNN=n3 GPU=2 caffe-train
 # 
 # 3. To generate timing estimates for Caffe:
@@ -21,7 +21,7 @@
 #      TODO 
 #
 # NOTES:
-# o For expediency, we create LMDB databases that contain many 
+# o For CcT compatability, we create LMDB databases that contain many 
 #   pre-computed tiles; in the past we created these tiles "lazily" to
 #   avoid creating large data sets with lots of redundancy.
 #
@@ -57,8 +57,8 @@ MAX_BRIGHT=142
 
 # Define the subset of ISBI2012 to use for train and validation.
 # For now, we'll use 20 slices for train and the last 10 for validation.
-S_TRAIN="range(0,20)"
-S_VALID="range(20,30)"
+S_TRAIN="range(0,10)"
+S_VALID="range(10,20)"
 
 
 # Specify which model to use in timing experiments.
