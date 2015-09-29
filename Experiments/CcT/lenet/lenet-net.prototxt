@@ -11,6 +11,7 @@ layer {
   }
   transform_param {
     scale: 0.00390625
+    mirror: true
   }
   data_param {
     source: "train.lmdb"
