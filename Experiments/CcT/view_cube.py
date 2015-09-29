@@ -8,6 +8,8 @@ inFile='./lenet/Yhat_train-volume.tif.npy'
 
 Yhat = np.load(inFile)
 
-plt.imshow(Yhat[0,0,:,:], cmap='bone')
+sliceId = 1;
+
+plt.imshow(Yhat[1,sliceId,:,:], cmap='bone')
 plt.colorbar()
 plt.show()
