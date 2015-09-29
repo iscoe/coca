@@ -1,6 +1,5 @@
-# Note: in our original (Theano) model, we used tanh instead of RELU and
-#       also we didn't have normalization layers at the output of each
-#       convolutional layer...
+# Note: this has been altered to use the "layer" (vs "layers") style
+#       Caffe prototxt specification.
 
 
 name: "CiresanN3"
@@ -41,15 +40,11 @@ layer {
 }
 
 
-layers {
+layer {
   name: "conv1"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "data"
   top: "conv1"
-  blobs_lr: 1
-  blobs_lr: 2
-  weight_decay: 1
-  weight_decay: 1
   convolution_param {
     num_output: 48
     pad: 0
@@ -64,9 +59,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "pool1"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv1"
   top: "pool1"
   pooling_param {
@@ -75,15 +70,15 @@ layers {
     stride: 1
   }
 }
-layers {
+layer {
   name: "relu1"
-  type: RELU
+  type: "ReLU"
   bottom: "pool1"
   top: "pool1"
 }
-layers {
+layer {
   name: "norm1"
-  type: LRN
+  type: "LRN"
   bottom: "pool1"
   top: "norm1"
   lrn_param {
@@ -95,15 +90,11 @@ layers {
 }
 
 
-layers {
+layer {
   name: "conv2"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "norm1"
   top: "conv2"
-  blobs_lr: 1
-  blobs_lr: 2
-  weight_decay: 1
-  weight_decay: 1
   convolution_param {
     num_output: 48
     pad: 0
@@ -118,15 +109,15 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu2"
-  type: RELU
+  type: "ReLU"
   bottom: "conv2"
   top: "conv2"
 }
-layers {
+layer {
   name: "pool2"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv2"
   top: "pool2"
   pooling_param {
@@ -135,9 +126,9 @@ layers {
     stride: 1
   }
 }
-layers {
+layer {
   name: "norm2"
-  type: LRN
+  type: "LRN"
   bottom: "pool2"
   top: "norm2"
   lrn_param {
@@ -149,15 +140,11 @@ layers {
 }
 
 
-layers {
+layer {
   name: "conv3"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "norm2"
   top: "conv3"
-  blobs_lr: 1
-  blobs_lr: 2
-  weight_decay: 1
-  weight_decay: 1
   convolution_param {
     num_output: 48
     pad: 0
@@ -172,15 +159,15 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu3"
-  type: RELU
+  type: "ReLU"
   bottom: "conv3"
   top: "conv3"
 }
-layers {
+layer {
   name: "pool3"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv3"
   top: "pool3"
   pooling_param {
@@ -191,15 +178,11 @@ layers {
 }
 
 
-layers {
+layer {
   name: "ip1"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "pool3"
   top: "ip1"
-  blobs_lr: 1
-  blobs_lr: 2
-  weight_decay: 250
-  weight_decay: 1
   inner_product_param {
     num_output: 200
     weight_filler {
@@ -211,23 +194,19 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu4"
-  type: RELU
+  type: "ReLU"
   bottom: "ip1"
   top: "ip1"
 }
 
 
-layers {
+layer {
   name: "ip2"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "ip1"
   top: "ip2"
-  blobs_lr: 1
-  blobs_lr: 2
-  weight_decay: 250
-  weight_decay: 1
   inner_product_param {
     num_output: 2
     weight_filler {
@@ -241,28 +220,23 @@ layers {
 }
 
 
-layers {
+layer {
   name: "accuracy"
-  type: ACCURACY
+  type: "Accuracy"
   bottom: "ip2"
   bottom: "label"
   top: "accuracy"
-#  include: { phase: TEST }
+  include{ 
+    phase: TEST 
+  }
 }
 
-layers {
-  type: SOFTMAX_LOSS
+layer {
+  type: "SoftmaxWithLoss"
   name: "loss"
   top: "loss"
   bottom: "ip2"
   bottom: "label"
-  #loss_weight: 1
 }
 
 
-layers {
-  type: SOFTMAX
-  name: "prob"
-  top: "prob"
-  bottom: "ip2"
-}
