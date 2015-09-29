@@ -172,14 +172,3 @@ layer {
   bottom: "label"
   top: "loss"
 }
-
-# This Softmax layer only exists to facilitate extracting predictions.
-layer {
-  name: "prob"
-  type: "Softmax"
-  bottom: "ip2"
-  top: "prob"
-  include {
-    phase: TEST
-  }
-}
