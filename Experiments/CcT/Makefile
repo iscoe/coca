@@ -4,7 +4,7 @@
 # to run timing experiments with Caffe and Caffe con Troll (CcT) on this
 # data.  Also, we provide ways of extracting probability maps.
 # 
-# 1. To create the LMDB database from raw ISBI data (needed for CcT):
+# 1. To create the LMDB database from raw ISBI data:
 #      make lmdb-train
 #      make lmdb-valid
 #
@@ -20,6 +20,7 @@
 # 4. To generate timing estimates for Caffe con Troll (CcT):
 #      TODO 
 #
+#
 # NOTES:
 # o For CcT compatability, we create LMDB databases that contain many 
 #   pre-computed tiles; in the past we created these tiles "lazily" to
@@ -28,6 +29,7 @@
 # o A future possible direction is some combination of CcT and 
 #   dense classification techniques (e.g. the semantic segmentation
 #   approach of Long et. al.)
+#
 #-------------------------------------------------------------------------------
 
 
