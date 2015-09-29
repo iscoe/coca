@@ -18,9 +18,10 @@ layer {
     batch_size: 100
     backend: LMDB
   }
-  image_data_param {
-    shuffle: true
-  }
+# not yet supported by CcT
+#  image_data_param {
+#    shuffle: true
+#  }
 }
 layer {
   name: "ISBI-LMDB"
