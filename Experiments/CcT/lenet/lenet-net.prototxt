@@ -1,8 +1,8 @@
-# Note: assumes you will be running Caffe/CcT from the parent directory
+# Note: assumes you will be running Caffe/CcT from the parent directory!
 
 name: "LeNet"
 layer {
-  name: "mnist"
+  name: "ISBI-LMDB"
   type: "Data"
   top: "data"
   top: "label"
@@ -13,13 +13,13 @@ layer {
     scale: 0.00390625
   }
   data_param {
-    source: "../train.lmdb"
+    source: "train.lmdb"
     batch_size: 64
     backend: LMDB
   }
 }
 layer {
-  name: "mnist"
+  name: "ISBI-LMDB"
   type: "Data"
   top: "data"
   top: "label"
@@ -30,7 +30,7 @@ layer {
     scale: 0.00390625
   }
   data_param {
-    source: "../valid.lmdb"
+    source: "valid.lmdb"
     batch_size: 64
     backend: LMDB
   }
