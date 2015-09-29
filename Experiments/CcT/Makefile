@@ -8,8 +8,7 @@
 #      make lmdb-train
 #      make lmdb-valid
 #
-# 2. Train a lenet model and, in parallel (and on a different GPU)
-#    also train up a n3 model:
+# 2. Train a lenet model and (on a different GPU) a n3 model:
 #      make CNN=lenet GPU=1 caffe-train
 #      make CNN=n3 GPU=2 caffe-train
 # 
@@ -18,8 +17,13 @@
 #      make caffe-time-cpu
 # 
 # 4. To generate timing estimates for Caffe con Troll (CcT):
-#      TODO 
+#      make cct-time-cpu
 #
+# 5. Extract predictions from the Caffe model:
+#      make CNN=lenet GPU=3 caffe-predict
+#
+# 6. Extract predictions for CcT:
+#      TODO: this is going to require some new code.
 #
 # NOTES:
 # o For CcT compatability, we create LMDB databases that contain many 
@@ -49,6 +53,7 @@ PYCAFFE=/home/pekalmj1/Apps/caffe/python
 CNN=lenet
 SOLVER=$(CNN)/$(CNN)-solver.prototxt
 NET=$(CNN)/$(CNN)-net.prototxt
+DEPLOY=$(CNN)/$(CNN)-deploy.prototxt
 
 
 # Any pixels whose intensity is > this value will be omitted
@@ -64,7 +69,7 @@ S_VALID="range(10,20)"
 
 
 # Specify which model to use in timing experiments.
-CAFFE_MODEL=_iter_10000.caffemodel
+CAFFE_MODEL=$(CNN)/_iter_4000.caffemodel
 CCT_MODEL=trained_model.bin.25-09-2015-04-46-54
 
 
@@ -164,7 +169,9 @@ caffe-time-cpu:
 
 # Use this to extract probability maps.
 # For now, we use PyCaffe for this (already in hand, and time is short)
-caffe-probs:
+caffe-predict:
+	$(PY) deploy2.py -n $(DEPLOY) -m $(CAFFE_MODEL) -X ISBI2012/train-volume.tif --eval-slices $(S_VALID) --gpu $(GPU) --max-brightness $(MAX_BRIGHT)
+
 
 
 #-------------------------------------------------------------------------------
@@ -178,5 +185,5 @@ cct-time-cpu:
 	nohup caffe-ct test $(SOLVER) -i $(CCT_MODEL) > cct.time.cpu.out &
 
 
-clean :
+cct-clean :
 	\rm -f train_preprocessed.bin val_preprocessed.bin
