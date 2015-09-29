@@ -85,7 +85,7 @@ def _eval_cube(net, X, M, batchDim):
     nClasses = net.blobs['prob'].data.shape[1]    # *** Assumes a layer called "prob"
 
     # allocate memory for return values
-    Yhat = -1*np.ones((nClasses, X.shape[0], X.shape[1], X.shape[2]))
+    Yhat = np.zeros((nClasses, X.shape[0], X.shape[1], X.shape[2]))
         
     print "[deploy]: Yhat shape: %s" % str(Yhat.shape)
     sys.stdout.flush()
