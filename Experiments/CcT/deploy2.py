@@ -64,6 +64,9 @@ def get_args():
 		    dest='maxBrightness', type=int, 
 		    default=sys.maxint,
 		    help='Only evaluates pixels with this brightness')
+    parser.add_argument('--eval-pct', dest='evalPct', type=float,
+		    default=1.0,
+		    help='what percentage of pixels to evaluate')
 
     return parser.parse_args()
 
@@ -85,7 +88,9 @@ def _eval_cube(net, X, M, batchDim):
     nClasses = net.blobs['prob'].data.shape[1]    # *** Assumes a layer called "prob"
 
     # allocate memory for return values
-    Yhat = np.zeros((nClasses, X.shape[0], X.shape[1], X.shape[2]))
+    # if we don't evaluate all pixels, the 
+    # ones not evaluated will have label -1
+    Yhat = -1*np.ones((nClasses, X.shape[0], X.shape[1], X.shape[2]))
         
     print "[deploy]: Yhat shape: %s" % str(Yhat.shape)
     sys.stdout.flush()
@@ -180,8 +185,13 @@ if __name__ == "__main__":
     # pixels that are sufficiently bright are trivial to classify
     # and can be omitted.
     Mask = np.ones(X.shape, dtype=np.bool)
-    if args.maxBrightness < sys.maxint:
-	    Mask[X > args.maxBrightness] = False
+    Mask[X > args.maxBrightness] = False
+
+    # downsample (optional)
+    if args.evalPct < 1.0:
+        roll = np.random.rand(np.sum(Mask))
+        roll = roll < args.evalPct
+        Mask[Mask] = roll
 
     # rescale (assumes this was done during training!)
     X = X / 255.0
@@ -220,6 +230,10 @@ if __name__ == "__main__":
     sys.stdout.flush()
 
     Yhat = _eval_cube(net, X, Mask, batchDim)
+
+    # Mark the very bright pixels as non-membrane
+    Yhat[0, Xhat > args.maxBrightness] = 1;
+    Yhat[1, Xhat > args.maxBrightness] = 0;
  
     # discard border/mirroring
     Yhat = Yhat[:, :, borderSize:(-borderSize), borderSize:(-borderSize)]
