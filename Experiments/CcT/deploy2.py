@@ -232,8 +232,8 @@ if __name__ == "__main__":
     Yhat = _eval_cube(net, X, Mask, batchDim)
 
     # Mark the very bright pixels as non-membrane
-    Yhat[0, Xhat > args.maxBrightness] = 1;
-    Yhat[1, Xhat > args.maxBrightness] = 0;
+    Yhat[0, X > args.maxBrightness] = 1;
+    Yhat[1, X > args.maxBrightness] = 0;
  
     # discard border/mirroring
     Yhat = Yhat[:, :, borderSize:(-borderSize), borderSize:(-borderSize)]
