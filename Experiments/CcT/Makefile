@@ -170,7 +170,7 @@ caffe-time-cpu:
 # Use this to extract probability maps.
 # For now, we use PyCaffe for this (already in hand, and time is short)
 caffe-predict:
-	$(PY) deploy2.py -n $(DEPLOY) -m $(CAFFE_MODEL) -X ISBI2012/train-volume.tif --eval-slices $(S_VALID) --gpu $(GPU) --max-brightness $(MAX_BRIGHT)
+	$(PY) deploy2.py -n $(DEPLOY) -m $(CAFFE_MODEL) -X ISBI2012/train-volume.tif --eval-slices $(S_VALID) --gpu $(GPU) --max-brightness $(MAX_BRIGHT) --eval-pct .45
 
 
 
