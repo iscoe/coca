@@ -137,6 +137,8 @@ def main(args):
     if args.labelsFileName: 
         print('[make_lmdb]: loading labels file: %s' % args.labelsFileName) 
         Y = emlib.load_cube(args.labelsFileName, np.float32)
+        # remap so that class label 0 is non-membrane and 1 is membrane
+        Y[Y==0] = 1; Y[Y==255] = 0; 
         Y = fix_class_labels(Y, eval(args.omitLabels))
         assert(Y.shape == X.shape)
     else:
