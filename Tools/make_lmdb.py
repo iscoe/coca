@@ -86,7 +86,7 @@ def get_args():
             help='size of each data tile (should be an odd, positive integer)')
     
     parser.add_argument('--use-slices', dest='slicesExpr', 
-            type=str, default='range(0,20)', 
+            type=str, default='', 
             help='A python-evaluatable string indicating which slices should be used from the volumes')
 
     parser.add_argument('--num-examples', dest='maxNumExamples', 
@@ -152,10 +152,12 @@ def main(args):
     assert(X.shape[0] < X.shape[2])
 
     # Identify the subset of the data to use for training.
-    sliceIdx = eval(args.slicesExpr)
-    X = X[sliceIdx, :, :]  # python puts the z dimension first...
+    # (default is to use it all)
+    if len(args.slicesExpr): 
+        sliceIdx = eval(args.slicesExpr) 
+        X = X[sliceIdx, :, :]  # python puts the z dimension first... 
+        Y = Y[sliceIdx, :, :]
     X = X.astype(np.uint8)  # critical!! otherwise, Caffe just flails...
-    Y = Y[sliceIdx, :, :]
 
     # any pixels that are too bright will be ignored.
     if args.maxBrightness < sys.maxint:
@@ -169,6 +171,7 @@ def main(args):
     print('[make_lmdb]: %0.2f%% pixels will be omitted' % (100.0*np.sum(Y==-1)/numel(Y)))
     print('[make_lmdb]:   (%0.2f%% of these were too bright)' % (100.0*nTooBright/numel(Y)))
     print('')
+    sys.stdout.flush()
 
     # Create the output database.
     # Multiply the actual size by a fudge factor to get a safe upper bound
