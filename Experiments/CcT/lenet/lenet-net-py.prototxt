@@ -133,14 +133,14 @@ layer {
   }
 }
 layer {
-  name: "accuracy"
+  name: "acc"
   type: "Accuracy"
   bottom: "ip2"
   bottom: "label"
-  top: "accuracy"
-  include {
-    phase: TEST
-  }
+  top: "acc"
+#  include {
+#    phase: TEST
+#  }
 }
 layer {
   name: "loss"
@@ -156,7 +156,7 @@ layer {
   type: "Softmax"
   bottom: "ip2"
   top: "prob"
-  include {
-    phase: TEST
-  }
+#  include {
+#    phase: TEST
+#  }
 }
