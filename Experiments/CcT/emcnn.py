@@ -80,39 +80,43 @@ def _print_net(net):
 def _load_data(xName, yName, args, tileSize):
     """Loads data sets and does basic preprocessing.
     """
-
     X = emlib.load_cube(xName, np.float32)
-    Y = emlib.load_cube(yName, np.float32)
 
     # usually we expect fewer slices in Z than pixels in X or Y.
     # Make sure the dimensions look ok before proceeding.
     assert(X.shape[0] < X.shape[1])
     assert(X.shape[0] < X.shape[2])
-
-    # take a subset of slices (optional)
-    if args.onlySlices: 
-        X = X[args.onlySlices,:,:] 
-        Y = Y[args.onlySlices,:,:] 
-
     print('[emCNN]:    data shape: %s' % str(X.shape))
 
-    # Labels must be natural numbers (contiguous integers starting at 0)
-    # because they are mapped to indices at the output of the network.
-    # This next bit of code remaps the native y values to these indices.
-    Y = emlib.fix_class_labels(Y, args.omitLabels)
+    if args.onlySlices: 
+        X = X[args.onlySlices,:,:] 
 
-    print('[emCNN]:    yAll is %s' % str(np.unique(Y)))
-    print('[emCNN]:    will use %0.2f%% of volume' % (100.*np.sum(Y>=0)/numel(Y)))
-
-    # mirror edges of images so that every pixel in the original data set 
-    # can act as a center pixel of some tile    
     X = emlib.mirror_edges(X, tileSize)
-    Y = emlib.mirror_edges(Y, tileSize)
 
     # Scale data to live in [0 1].
     # I'm assuming original data is in [0 255]
     if np.max(X) > 1:
         X = X / 255.
+
+    # Also obtain labels file (if provided - e.g. in deploy mode
+    # we may not have labels...)
+    if yName: 
+        Y = emlib.load_cube(yName, np.float32)
+
+        if args.onlySlices: 
+            Y = Y[args.onlySlices,:,:] 
+
+        # Labels must be natural numbers (contiguous integers starting at 0)
+        # because they are mapped to indices at the output of the network.
+        # This next bit of code remaps the native y values to these indices.
+        Y = emlib.fix_class_labels(Y, args.omitLabels)
+
+        print('[emCNN]:    yAll is %s' % str(np.unique(Y)))
+        print('[emCNN]:    will use %0.2f%% of volume' % (100.*np.sum(Y>=0)/numel(Y)))
+
+        Y = emlib.mirror_edges(Y, tileSize)
+    else:
+        Y = None
 
     return X, Y
 
@@ -133,11 +137,11 @@ def _get_args():
 		    type=str, required='', 
 		    help='Caffe prototxt file (train mode)')
 
-    parser.add_argument('--network', dest='networkFile', 
+    parser.add_argument('--network', dest='network', 
 		    type=str, default='',
 		    help='Caffe network file (train mode)')
 
-    parser.add_argument('--model', dest='modelFile', 
+    parser.add_argument('--model', dest='model', 
 		    type=str, default='',
 		    help='Caffe model file to use for weights (deploy mode)')
 
@@ -489,7 +493,7 @@ def predict(net, X, Mask, batchDim):
     if 'prob' not in net.blobs: 
         raise RuntimeError("Can't find a layer with output called 'prob'")
 
-    # Pre-allocate some variables & storate.
+    # Pre-allocate some variables & storage.
     #
     tileRadius = int(batchDim[2]/2)
     Xi = np.zeros(batchDim, dtype=np.float32)
@@ -500,11 +504,12 @@ def predict(net, X, Mask, batchDim):
     # ones not evaluated will have label -1
     Prob = -1*np.ones((nClasses, X.shape[0], X.shape[1], X.shape[2]))
 
-    print "[emCNN]:  Evaluating %0.2f%% of cube" % (100.0*np.sum(Mask)/numel(Mask)) 
+    print "[emCNN]: Evaluating %0.2f%% of cube" % (100.0*np.sum(Mask)/numel(Mask)) 
 
     # do it
     tic = time.time()
     cnnTime = 0
+    lastChatter = -2
     it = emlib.interior_pixel_generator(X, tileRadius, batchDim[0], mask=Mask)
 
     for Idx, epochPct in it: 
@@ -541,16 +546,82 @@ def predict(net, X, Mask, batchDim):
             assert(len(pj.shape)==1)  # should be a vector (vs tensor)
             Prob[jj, Idx[:,0], Idx[:,1], Idx[:,2]] = pj[:Idx.shape[0]]   # (*)
 
+
+        elapsed = time.time() - tic
+
+        if (lastChatter+2) < (elapsed/60.):  # notify progress every 2 min
+            lastChatter = elapsed
+            print('[emCNN]: elapsed=%0.2f min; %0.2f%% complete' % (elapsed/60., 100.*epochPct))
+
     # done
     elapsed = time.time() - tic
-    print('[emCNN]: time to evaluate cube: %0.2f min (%0.2f CNN min)' % (elapsed/60., cnnTime/60.))
+    print('[emCNN]: Total time to evaluate cube: %0.2f min (%0.2f CNN min)' % (elapsed/60., cnnTime/60.))
     return Prob
 
 
 
 
 def _deploy_network(args):
-    pass
+    #----------------------------------------
+    # parse information from the prototxt files
+    #----------------------------------------
+    netFn = str(args.network)  # unicode->str to avoid caffe API problems
+    netParam = caffe_pb2.NetParameter()
+    text_format.Merge(open(netFn).read(), netParam)
+
+    batchDim = emlib.infer_data_dimensions(netFn)
+    assert(batchDim[2] == batchDim[3])  # tiles must be square
+    print('[emCNN]: batch shape: %s' % str(batchDim))
+
+    outDir = os.path.dirname(args.network)
+    if not os.path.isdir(outDir):
+        os.mkdir(outDir)
+
+    #----------------------------------------
+    # Create the Caffe network
+    # Note this assumes a relatively recent PyCaffe
+    #----------------------------------------
+    phaseTest = 1  # 1 := test mode
+    net = caffe.Net(netFn, args.model, phaseTest)
+    _print_net(net)
+
+    #----------------------------------------
+    # Load data
+    #----------------------------------------
+    bs = border_size(batchDim)
+    print "[emCNN]: loading deploy data..."
+    Xdeploy, Ydeploy = _load_data(args.emDeployFile,
+            args.labelsDeployFile, 
+            args, bs)
+    print "[emCNN]: tile dimension is: %d" % bs
+
+    #----------------------------------------
+    # Do deployment & save results
+    #----------------------------------------
+    sys.stdout.flush()
+
+    Mask = np.ones(Xdeploy.shape, dtype=np.bool)
+    if Ydeploy is not None:
+        Mask[Ydeploy<0] = False
+    Prob = predict(net, Xdeploy, Mask, batchDim)
+
+    # discard mirrored edges and form class estimates
+    Yhat = np.argmax(Prob, 0) 
+    Yhat[Mask==False] = -1;
+    Prob = prune_border_4d(Prob, bs)
+    Yhat = prune_border_3d(Yhat, bs)
+
+    # compute some metrics
+    if Ydeploy is not None:
+        acc,precision,recall = _binary_metrics(prune_border_3d(Ydeploy, bs), Yhat)
+
+        print('[emCNN]: Task performance:')
+        print('         acc=%0.2f, precision=%0.2f, recall=%0.2f' % (acc, precision, recall))
+
+    net.save(str(os.path.join(outDir, 'final.caffemodel')))
+    np.save(os.path.join(outDir, 'YhatDeploy.npz'), Prob)
+    scipy.io.savemat(os.path.join(outDir, 'YhatDeploy.mat'), {'Yhat' : Prob})
+    print('[emCNN]: deployment complete.')
 
 
 
