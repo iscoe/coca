@@ -313,7 +313,6 @@ def train_one_epoch(solver, X, Y,
             if acc: 
                 print "[train]:     accuracy (train volume)=%0.2f" % acc
             sys.stdout.flush()
-            return # TEMP TEMP TEMP
  
         if trainInfo.iter >= trainInfo.param.max_iter:
             break  # in case we hit max_iter on a non-epoch boundary
@@ -355,7 +354,9 @@ def predict(net, X, Mask, batchDim):
 
     # do it
     tic = time.time()
+    cnnTime = 0
     it = emlib.interior_pixel_generator(X, tileRadius, batchDim[0], mask=Mask)
+
     for Idx, epochPct in it: 
         # Extract subtiles from validation data set 
         for jj in range(Idx.shape[0]): 
@@ -369,8 +370,10 @@ def predict(net, X, Mask, batchDim):
         #---------------------------------------- 
         # one forward pass; no backward pass 
         #----------------------------------------
+        _tmp = time.time()
         net.set_input_arrays(Xi, yi)
         out = net.forward()
+        cnnTime += time.time() - _tmp
 
         # On some version of Caffe, Prob is (batchSize, nClasses, 1, 1)
         # On newer versions, it is natively (batchSize, nClasses)
@@ -390,7 +393,7 @@ def predict(net, X, Mask, batchDim):
 
     # done
     elapsed = time.time() - tic
-    print('[train]: time to evaluate cube: %0.2f min' % (elapsed/60.))
+    print('[train]: time to evaluate cube: %0.2f min (%0.2f CNN min)' % (elapsed/60., cnnTime/60.))
     return Prob
 
  
@@ -406,7 +409,6 @@ def _binary_metrics(Y, Yhat):
     precision = 1.0*np.sum(Y[Yhat==1] == 1) / np.sum(Yhat==1)
     recall = 1.0*np.sum(Yhat[Y==1] == 1) / np.sum(Y==1)
 
-    pdb.set_trace() # TEMP
     return acc, precision, recall
 
 
@@ -482,11 +484,15 @@ if __name__ == "__main__":
         Mask = np.ones(Xvalid.shape, dtype=np.bool)
         Mask[Yvalid<0] = False
         Prob = predict(solver.net, Xvalid, Mask, batchDim)
-        Yhat = np.argmax(Prob, 0)  # maps probabilities to est. class labels
+
+        # discard mirrored edges and form class estimates
+        Yhat = np.argmax(Prob, 0) 
+        Yhat[Mask==False] = -1;
+        Prob = prune_border_4d(Prob, bs)
+        Yhat = prune_border_3d(Yhat, bs)
 
         # compute some metrics
-        acc,precision,recall = _binary_metrics(prune_border_3d(Yvalid, bs),
-                prune_border_3d(Yhat, bs))
+        acc,precision,recall = _binary_metrics(prune_border_3d(Yvalid, bs), Yhat)
 
         print('[info]:  Validation set performance:')
         print('         acc=%0.2f, precision=%0.2f, recall=%0.2f' % (acc, precision, recall))
@@ -494,8 +500,8 @@ if __name__ == "__main__":
         epoch += 1
  
     solver.net.save(str(os.path.join(outDir, 'final.caffemodel')))
-    np.save(os.path.join(outDir, 'Yhat.npz'), Yhat)
-    scipy.io.savemat(os.path.join(outDir, 'Yhat.mat'), {'Yhat' : Yhat})
+    np.save(os.path.join(outDir, 'Yhat.npz'), Prob)
+    scipy.io.savemat(os.path.join(outDir, 'Yhat.mat'), {'Yhat' : Prob})
     print('[train]: training complete.')
 
 
