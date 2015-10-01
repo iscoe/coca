@@ -8,9 +8,11 @@
 #      make lmdb-train
 #      make lmdb-valid
 #
-# 2. Train a lenet model and (on a different GPU) a n3 model:
+# 2. Train models using Caffe:
 #      make CNN=lenet GPU=1 caffe-train
-#      make CNN=n3 GPU=2 caffe-train
+#      make CNN=lenet GPU=2 pycaffe-train
+#      make CNN=n3 GPU=3 caffe-train
+#      make CNN=n3 GPU=4 pycaffe-train
 # 
 # 3. To generate timing estimates for Caffe:
 #      make caffe-time-gpu
@@ -73,10 +75,13 @@ CCT_MODEL=trained_model.bin.25-09-2015-04-46-54
 # This just points to the part
 BASE_DIR=../..
 
-# we need PyCaffe and emlib.py in the PYTHONPATH
+# Different ways to run python.
+# (we need PyCaffe and emlib.py in the PYTHONPATH)
 PY=PYTHONPATH=$(PYCAFFE):$(BASE_DIR) python
+PYNOHUP=PYTHONPATH=$(PYCAFFE):$(BASE_DIR) nohup python
 # for profiling (optional)
-#PY=PYTHONPATH=$(PYCAFFE):.. python -m cProfile -s cumtime
+PYPROF=PYTHONPATH=$(PYCAFFE):.. python -m cProfile -s cumtime
+
 
 # Number of iterations to use in timing experiments
 NITERS=100
@@ -107,6 +112,7 @@ tar :
 #-------------------------------------------------------------------------------
 # Data preprocessing
 # (includes creating LMDB databases)
+# You have to do this (just once) before running any other targets.
 #-------------------------------------------------------------------------------
 
 data:
@@ -130,23 +136,56 @@ data-clean:
 # Working with Caffe
 #-------------------------------------------------------------------------------
 
-# Train a model
+#--------------------------------------------------
+# Train a model using either:
+# 
+#   a) Command-line caffe and pre-computed tiles
+#      stored in an LMDB database
+#      
+#   b) PyCaffe and dynamically "lazily" created tiles
+#      (this is a much larger data set)
+#      
+#--------------------------------------------------
 caffe-train:
-	nohup caffe train -solver $(SOLVER) -gpu $(GPU) > caffe.$(CNN).train.out &
+	nohup caffe train \
+		-solver $(CNN)/$(CNN)-solver.prototxt \
+	       	-gpu $(GPU) \
+		> $(CNN)/caffe.$(CNN).train.out &
 
 
-# Produce timing estimates; for GPU mode
+pycaffe-train:
+	$(PYNOHUP) emcnn.py \
+		--x-train ISBI2012/Xtrain.npy \
+		--y-train ISBI2012/Ytrain.npy \
+		--x-valid ISBI2012/Xvalid.npy \
+		--y-valid ISBI2012/Yvalid.npy \
+		--solver $(CNN)/$(CNN)-solver-py.prototxt \
+		--gpu $(GPU) \
+		> $(CNN)/pycaffe.$(CNN).train.out &
+
+
+#--------------------------------------------------
+# Produce timing estimates (using model created above)
+# using caffe command line for either:
+# 
+#   a) GPU cards
+#   b) CPU only (very slow!)
+#  
+#--------------------------------------------------
 caffe-time-gpu:
 	caffe time -model $(NET) -weights $(CAFFE_MODEL) -iterations $(NITERS) -gpu $(GPU)
 
 
-# Produce timing estimates; for CPU mode
 caffe-time-cpu:
 	nohup caffe time -model $(NET) -weights $(CAFFE_MODEL) -iterations $(NITERS) > caffe.time.cpu.out &
 
 
-# Use this to extract probability maps.
-# For now, we use PyCaffe for this (already in hand, and time is short)
+#--------------------------------------------------
+# Generate pixel-level predictions using Caffe.
+#
+# Note this works with either model developed during training
+# (just point the --model argument at the correct file)
+#--------------------------------------------------
 caffe-predict:
 	$(PY) deploy2.py -n $(DEPLOY) -m $(CAFFE_MODEL) -X ISBI2012/train-volume.tif  --gpu $(GPU) --max-brightness $(MAX_BRIGHT) --eval-pct .45
 
