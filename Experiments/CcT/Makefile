@@ -56,17 +56,6 @@ NET=$(CNN)/$(CNN)-net.prototxt
 DEPLOY=$(CNN)/$(CNN)-deploy.prototxt
 
 
-# Any pixels whose intensity is > this value will be omitted
-# from the analysis (these are trivially non-membrane).  Set
-# to 256 if you want to omit nothing.
-MAX_BRIGHT=142
-
-
-# Define the subset of ISBI2012 to use for train and validation.
-# For now, we'll use 20 slices for train and the last 10 for validation.
-S_TRAIN="range(0,10)"
-S_VALID="range(10,20)"
-
 # The maximum number of tiles to extract
 N_TILES=200000
 
@@ -116,34 +105,25 @@ tar :
 
 
 #-------------------------------------------------------------------------------
-# Creating LMDB databases
+# Data preprocessing
+# (includes creating LMDB databases)
 #-------------------------------------------------------------------------------
 
-# Creates an LMDB data set for training.
-# This is just a ("tile-ified") subset of the ISBI 2012 training data set.
-lmdb-train:
-	$(PY) $(BASE_DIR)/Tools/make_lmdb.py --use-slices $(S_TRAIN) \
-		-X ./ISBI2012/train-volume.tif \
-		-Y ./ISBI2012/train-labels.tif \
+preprocess:
+	$(PY) preprocess.py -X ./ISBI2012/train-volume.tif -Y ./ISBI2012/train-labels.tif
+	$(PY) $(BASE_DIR)/Tools/make_lmdb.py \
+		-X ./ISBI2012/Xtrain.npy -Y ./ISBI2012/Ytrain.npy
 		--num-examples $(N_TILES) \
-		--max-brightness $(MAX_BRIGHT) \
 		-o ./train.lmdb
-
-
-# Creates an LMDB data set for validation.
-# This is also a subset of the ISBI 2012 training data set
-lmdb-valid:
-	$(PY) $(BASE_DIR)/Tools/make_lmdb.py --use-slices $(S_VALID) \
-		-X ./ISBI2012/train-volume.tif \
-		-Y ./ISBI2012/train-labels.tif \
+	$(PY) $(BASE_DIR)/Tools/make_lmdb.py \
+		-X ./ISBI2012/Xvalid.npy -Y ./ISBI2012/Yvalid.npy
 		--num-examples $(N_TILES) \
-		--max-brightness $(MAX_BRIGHT) \
 		-o ./valid.lmdb
 
 
-# Deletes LMDB directories
-lmdb-clean:
-		\rm -rf ./train.lmdb ./valid.lmdb
+# Deletes data preprocessing
+clean-data:
+	\rm -rf ./train.lmdb ./valid.lmdb ./ISBI2012/{X,Y}*npy
 
 
 #-------------------------------------------------------------------------------
