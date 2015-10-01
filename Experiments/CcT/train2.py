@@ -24,9 +24,12 @@ import scipy
 import emlib
 
 
-
-
-numel = lambda(X): np.prod(X.shape)
+#-------------------------------------------------------------------------------
+# some helper functions
+#-------------------------------------------------------------------------------
+numel = lambda X: np.prod(X.shape)
+prune_border_3d = lambda X, bs: X[:, bs:(-bs), bs:(-bs)]
+prune_border_4d = lambda X, bs: X[:, :, bs:(-bs), bs:(-bs)]
 
 
 
@@ -76,13 +79,74 @@ def _get_args():
 		    type=str, default='', 
 		    help='(optional) limit experiment to a subset of slices')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+
+    # map strings to python objects (a little gross, but ok for now...)
+    if args.omitLabels:
+        args.omitLabels = eval(args.omitLabels)
+    if args.onlySlices:
+        args.onlySlices = eval(args.onlySlices)
+
+    return args
 
 
 
 #-------------------------------------------------------------------------------
 # Functions for training a CNN
 #-------------------------------------------------------------------------------
+
+def _load_data(args):
+    """Loads data sets and does basic preprocessing.
+    """
+    Xtrain = emlib.load_cube(args.emTrainFile, np.float32)
+    Ytrain = emlib.load_cube(args.labelsTrainFile, np.float32)
+    Xvalid = emlib.load_cube(args.emValidFile, np.float32)
+    Yvalid = emlib.load_cube(args.labelsValidFile, np.float32)
+
+    # usually we expect fewer slices in Z than pixels in X or Y.
+    # Make sure the dimensions look ok before proceeding.
+    assert(Xtrain.shape[0] < Xtrain.shape[1])
+    assert(Xtrain.shape[0] < Xtrain.shape[2])
+
+    # take a subset of slices (optional)
+    if args.onlySlices:
+        Xtrain = Xtrain[args.onlySlices,:,:]
+        Ytrain = Ytrain[args.onlySlices,:,:]
+        Xvalid = Xvalid[args.onlySlices,:,:]
+        Yvalid = Yvalid[args.onlySlices,:,:]
+
+    print('[train]: training data shape: %s' % str(Xtrain.shape))
+    print('[train]: validation data shape: %s' % str(Xvalid.shape))
+
+    # Class labels must be natural numbers (contiguous integers starting at 0)
+    # because they are mapped to indices at the output of the network.
+    # This next bit of code remaps the native y values to these indices.
+    Ytrain = emlib.fix_class_labels(Ytrain, args.omitLabels)
+    Yvalid = emlib.fix_class_labels(Yvalid, args.omitLabels)
+
+    print('[train]: yAll is %s' % str(np.unique(Ytrain)))
+    print('[train]: will use %0.2f%% of volume for training' % (100.*np.sum(Ytrain>=0)/numel(Ytrain)))
+
+    # mirror edges of images so that every pixel in the original data set 
+    # can act as a center pixel of some tile    
+    borderSize = int(batchDim[2]/2)
+    Xtrain = emlib.mirror_edges(Xtrain, borderSize)
+    Ytrain = emlib.mirror_edges(Ytrain, borderSize)
+    Xvalid = emlib.mirror_edges(Xvalid, borderSize)
+    Yvalid = emlib.mirror_edges(Yvalid, borderSize)
+
+    # Scale data to live in [0 1]
+    offset = np.min(Xtrain)
+    sf = 1.0*(np.max(Xtrain) - np.min(Xtrain))
+    Xtrain = (Xtrain+offset) / sf
+    Xvalid = (Xvalid+offset) / sf
+
+
+    return Xtrain, Ytrain, Xvalid, Yvalid, borderSize
+
+
+
 def _xform_minibatch(X, rotate=False):
     """Synthetic data augmentation for one mini-batch.
     
@@ -120,6 +184,10 @@ def _xform_minibatch(X, rotate=False):
 
 
 class TrainInfo:
+    """
+    Used to store/update CNN parameters over time.
+    """
+
     def __init__(self, solverParam):
         self.param = solverParam
 
@@ -132,6 +200,8 @@ class TrainInfo:
         if (solverParam.solver_type != solverParam.SolverType.Value('SGD')):
             raise ValueError('Sorry - I only support SGD at this time')
 
+        # keeps track of the current mini-batch iteration and how
+        # long the processing has taken so var
         self.iter = 0
         self.cnnTime = 0
         self.netTime = 0
@@ -153,7 +223,6 @@ class TrainInfo:
 
         # XXX: weight decay
         # XXX: layer-specific weights
-
 
 
 
@@ -244,13 +313,15 @@ def train_one_epoch(solver, X, Y,
             if acc: 
                 print "[train]:     accuracy (train volume)=%0.2f" % acc
             sys.stdout.flush()
+            return # TEMP TEMP TEMP
  
         if trainInfo.iter >= trainInfo.param.max_iter:
             break  # in case we hit max_iter on a non-epoch boundary
                 
     # all finished with this epoch
     print "[train]:    epoch complete."
-    return losses, acc
+    sys.stdout.flush()
+    return loss, acc
 
 
 
@@ -259,23 +330,32 @@ def train_one_epoch(solver, X, Y,
 #-------------------------------------------------------------------------------
 
 
-def predict(net, X, Y, batchDim, outDir, omitLabels=[]):
-    """Generates a prediction for a volume.
-    """
+def predict(net, X, Mask, batchDim):
+    """Generates predictions for a data volume.
+
+    The data volume is assumed to be a tensor with shape:
+      (#slices, width, height)
+    """    
+    # *** This code assumes a layer called "prob"
+    if 'prob' not in net.blobs: 
+        raise RuntimeError("Can't find a layer with output called 'prob'")
 
     # Pre-allocate some variables & storate.
     #
     tileRadius = int(batchDim[2]/2)
     Xi = np.zeros(batchDim, dtype=np.float32)
     yi = np.zeros((batchDim[0],), dtype=np.float32)
-    yMax = np.max(Y).astype(np.int32)
+    nClasses = net.blobs['prob'].data.shape[1]
 
-    Mask = np.ones(Y.shape, dtype=bool)
-    for yIgnore in omitLabels:
-        Mask[Yvalid==yIgnore] = False
+    # if we don't evaluate all pixels, the 
+    # ones not evaluated will have label -1
+    Prob = -1*np.ones((nClasses, X.shape[0], X.shape[1], X.shape[2]))
 
     print "[train]:  Evaluating %0.2f%% of cube" % (100.0*np.sum(Mask)/numel(Mask)) 
-    it = emlib.interior_pixel_generator(Y, tileRadius, batchDim[0], mask=Mask)
+
+    # do it
+    tic = time.time()
+    it = emlib.interior_pixel_generator(X, tileRadius, batchDim[0], mask=Mask)
     for Idx, epochPct in it: 
         # Extract subtiles from validation data set 
         for jj in range(Idx.shape[0]): 
@@ -284,7 +364,7 @@ def predict(net, X, Y, batchDim, outDir, omitLabels=[]):
             c = Idx[jj,2] - tileRadius 
             d = Idx[jj,2] + tileRadius + 1 
             Xi[jj, 0, :, :] = Xvalid[ Idx[jj,0], a:b, c:d ]
-            yi[jj] = Yvalid[ Idx[jj,0], Idx[jj,1], Idx[jj,2] ] 
+            yi[jj] = 0  # this is just a dummy value
 
         #---------------------------------------- 
         # one forward pass; no backward pass 
@@ -292,58 +372,42 @@ def predict(net, X, Y, batchDim, outDir, omitLabels=[]):
         net.set_input_arrays(Xi, yi)
         out = net.forward()
 
-   
+        # On some version of Caffe, Prob is (batchSize, nClasses, 1, 1)
+        # On newer versions, it is natively (batchSize, nClasses)
+        # The squeeze here is to accommodate older versions
+        ProbBatch = np.squeeze(out['prob']) 
 
+        # store the per-class probability estimates.
+        #
+        # * Note that on the final iteration, the size of Prob  may not match
+        #   the remaining space in Yhat (unless we get lucky and the data cube
+        #   size is a multiple of the mini-batch size).  This is why we slice
+        #   yijHat before assigning to Yhat.
+        for jj in range(nClasses):
+            pj = ProbBatch[:,jj]      # get probabilities for class j
+            assert(len(pj.shape)==1)  # should be a vector (vs tensor)
+            Prob[jj, Idx[:,0], Idx[:,1], Idx[:,2]] = pj[:Idx.shape[0]]   # (*)
 
-def _load_data(args):
-    """Loads data sets and does basic preprocessing.
+    # done
+    elapsed = time.time() - tic
+    print('[train]: time to evaluate cube: %0.2f min' % (elapsed/60.))
+    return Prob
+
+ 
+
+def _binary_metrics(Y, Yhat): 
     """
-    Xtrain = emlib.load_cube(args.emTrainFile, np.float32)
-    Ytrain = emlib.load_cube(args.labelsTrainFile, np.float32)
-    Xvalid = emlib.load_cube(args.emValidFile, np.float32)
-    Yvalid = emlib.load_cube(args.labelsValidFile, np.float32)
+    Assumes class labels of interest are {0,1}
+    """
+    assert(len(Y.shape) == 3)
+    assert(len(Yhat.shape) == 3)
 
-    # usually we expect fewer slices in Z than pixels in X or Y.
-    # Make sure the dimensions look ok before proceeding.
-    assert(Xtrain.shape[0] < Xtrain.shape[1])
-    assert(Xtrain.shape[0] < Xtrain.shape[2])
+    acc = 1.0*np.sum(Yhat[Y>=0] == Y[Y>=0]) / np.sum(Y>=0)
+    precision = 1.0*np.sum(Y[Yhat==1] == 1) / np.sum(Yhat==1)
+    recall = 1.0*np.sum(Yhat[Y==1] == 1) / np.sum(Y==1)
 
-    # take a subset of slices (optional)
-    if args.onlySlices:
-        useSlices = eval(args.onlySlices)
-        Xtrain = Xtrain[useSlices,:,:]
-        Ytrain = Ytrain[useSlices,:,:]
-        Xvalid = Xvalid[useSlices,:,:]
-        Yvalid = Yvalid[useSlices,:,:]
-
-    print('[train]: training data shape: %s' % str(Xtrain.shape))
-    print('[train]: validation data shape: %s' % str(Xvalid.shape))
-
-    # Class labels must be natural numbers (contiguous integers starting at 0)
-    # because they are mapped to indices at the output of the network.
-    # This next bit of code remaps the native y values to these indices.
-    Ytrain = emlib.fix_class_labels(Ytrain, eval(args.omitLabels))
-    Yvalid = emlib.fix_class_labels(Yvalid, eval(args.omitLabels))
-
-    print('[train]: yAll is %s' % str(np.unique(Ytrain)))
-    print('[train]: will use %0.2f%% of volume for training' % (100.*np.sum(Ytrain>=0)/numel(Ytrain)))
-
-    # mirror edges of images so that every pixel in the original data set 
-    # can act as a center pixel of some tile    
-    borderSize = int(batchDim[2]/2)
-    Xtrain = emlib.mirror_edges(Xtrain, borderSize)
-    Ytrain = emlib.mirror_edges(Ytrain, borderSize)
-    Xvalid = emlib.mirror_edges(Xvalid, borderSize)
-    Yvalid = emlib.mirror_edges(Yvalid, borderSize)
-
-    # Scale data to live in [0 1]
-    offset = np.min(Xtrain)
-    sf = 1.0*(np.max(Xtrain) - np.min(Xtrain))
-    Xtrain = (Xtrain+offset) / sf
-    Xvalid = (Xvalid+offset) / sf
-
-
-    return Xtrain, Ytrain, Xvalid, Yvalid
+    pdb.set_trace() # TEMP
+    return acc, precision, recall
 
 
 #-------------------------------------------------------------------------------
@@ -399,11 +463,10 @@ if __name__ == "__main__":
         for jj,blob in enumerate(layer.blobs):
             print("  blob %d has size %s" % (jj, str(blob.data.shape)))
 
-
     #----------------------------------------
     # Do training; save results
     #----------------------------------------
-    Xtrain, Ytrain, Xvalid, Yvalid = _load_data(args)
+    Xtrain, Ytrain, Xvalid, Yvalid, bs = _load_data(args)
     trainInfo = TrainInfo(solverParam)
     sys.stdout.flush()
 
@@ -412,17 +475,28 @@ if __name__ == "__main__":
         print "[train]: Starting epoch %d" % epoch
         train_one_epoch(solver, Xtrain, Ytrain, 
             trainInfo, batchDim, outDir, 
-            omitLabels=[-1], 
+            omitLabels=args.omitLabels,
             data_augment=syn_func)
 
-        # TODO: evaluate on validation data
+        print "[train]: Making predictions on validation data..."
+        Mask = np.ones(Xvalid.shape, dtype=np.bool)
+        Mask[Yvalid<0] = False
+        Prob = predict(solver.net, Xvalid, Mask, batchDim)
+        Yhat = np.argmax(Prob, 0)  # maps probabilities to est. class labels
+
+        # compute some metrics
+        acc,precision,recall = _binary_metrics(prune_border_3d(Yvalid, bs),
+                prune_border_3d(Yhat, bs))
+
+        print('[info]:  Validation set performance:')
+        print('         acc=%0.2f, precision=%0.2f, recall=%0.2f' % (acc, precision, recall))
+
         epoch += 1
  
     solver.net.save(str(os.path.join(outDir, 'final.caffemodel')))
-    np.save(os.path.join(outDir, '%s_losses' % outDir), losses)
-    np.save(os.path.join(outDir, '%s_acc' % outDir), acc)
-    
-    print('[train]: all done!')
+    np.save(os.path.join(outDir, 'Yhat.npz'), Yhat)
+    scipy.io.savemat(os.path.join(outDir, 'Yhat.mat'), {'Yhat' : Yhat})
+    print('[train]: training complete.')
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
