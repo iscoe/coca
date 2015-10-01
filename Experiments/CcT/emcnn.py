@@ -1,15 +1,22 @@
-""" PyCaffe for electron microscopy (EM) classification problems.
+""" EMCNN: PyCaffe for electron microscopy (EM) classification problems.
+
+This code uses Caffe's python API to solve per-pixel classification
+problems on EM data sets.  An assumption is that you have defined a
+convolutional neural network (CNN) via Caffe prototxt files; this network
+is assumed to have the following layers/top names:
+
+    top name |  Layer type       |  Reason
+    ---------+-------------------+----------------------------------
+      loss   |  SoftmaxWithLoss  |  Reporting training performance
+      acc    |  Accuracy         |  Reporting training performance
+      prob   |  Softmax          |  Extracting estimates
 
 
- ** NOTE **
- This code assumes your network has the following layer types/tops:
+This code is a slightly refactored/merged version of {train.py, deploy.py}
+The specific command line parameters used dictate whether this is used
+to train a new CNN or deploy and existing one.
 
-    top name |  Layer type
-    ---------+-----------------
-      loss   |  SoftmaxWithLoss
-      acc    |  Accuracy
-      prob   |  Softmax
-
+For a list of supported arguments, please see _get_args().
 
 """
 
