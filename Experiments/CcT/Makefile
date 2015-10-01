@@ -109,20 +109,20 @@ tar :
 # (includes creating LMDB databases)
 #-------------------------------------------------------------------------------
 
-preprocess:
+data:
 	$(PY) preprocess.py -X ./ISBI2012/train-volume.tif -Y ./ISBI2012/train-labels.tif
 	$(PY) $(BASE_DIR)/Tools/make_lmdb.py \
-		-X ./ISBI2012/Xtrain.npy -Y ./ISBI2012/Ytrain.npy
+		-X ./ISBI2012/Xtrain.npy -Y ./ISBI2012/Ytrain.npy \
 		--num-examples $(N_TILES) \
 		-o ./train.lmdb
 	$(PY) $(BASE_DIR)/Tools/make_lmdb.py \
-		-X ./ISBI2012/Xvalid.npy -Y ./ISBI2012/Yvalid.npy
+		-X ./ISBI2012/Xvalid.npy -Y ./ISBI2012/Yvalid.npy \
 		--num-examples $(N_TILES) \
 		-o ./valid.lmdb
 
 
 # Deletes data preprocessing
-clean-data:
+data-clean:
 	\rm -rf ./train.lmdb ./valid.lmdb ./ISBI2012/{X,Y}*npy
 
 
