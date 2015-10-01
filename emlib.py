@@ -156,6 +156,25 @@ def label_epsilon(Y, epsilon=3, n=9, targetClass=255, verbose=True):
     return (Yeps >= n)
 
 
+def fix_class_labels(Yin, omitLabels):
+    """Class labels must be contiguous natural numbers starting at 0.
+    This is because they are mapped to indices at the output of the CNN.
+    This function remaps the input y values if needed.
+
+    Any pixels that should be ignored will have class label of -1.
+    """
+    if Yin is None: return None
+
+    yAll = np.sort(np.unique(Yin))
+    yAll = [y for y in yAll if y not in omitLabels]
+
+    Yout = -1*np.ones(Yin.shape, dtype=Yin.dtype)
+    for yIdx, y in enumerate(yAll):
+        Yout[Yin==y] = yIdx
+
+    return Yout
+
+
 
 def mirror_edges(X, nPixels):
     """Given an (s x m x n) tensor X, generates a new
