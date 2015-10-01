@@ -78,7 +78,7 @@ def get_args():
 
 
     parser.add_argument('--omit-labels', dest='omitLabels', 
-            type=str, default='[]', 
+            type=str, default='(-1,)', 
             help='list of labels to omit')
 
     parser.add_argument('--tile-size', dest='tileSize', 
@@ -93,31 +93,10 @@ def get_args():
             type=int, default=sys.maxint,
             help='Maximum number of examples to extract (default is none)')
 
-    parser.add_argument('--max-brightness', dest='maxBrightness', 
-            type=int, default=sys.maxint,
-            help='Will only extract tiles corresponding to pixels whose brightness is below this threshold.')
-
     return parser.parse_args()
 
 
 
-def fix_class_labels(Yin, omitLabels):
-    """Class labels must be contiguous natural numbers starting at 0.
-    This is because they are mapped to indices at the output of the CNN.
-    This function remaps the input y values if needed.
-
-    Any pixels that should be ignored will have class label of -1.
-    """
-    if Yin is None: return None
-
-    yAll = np.sort(np.unique(Yin))
-    yAll = [y for y in yAll if y not in omitLabels]
-
-    Yout = -1*np.ones(Yin.shape, dtype=Yin.dtype)
-    for yIdx, y in enumerate(yAll):
-        Yout[Yin==y] = yIdx
-
-    return Yout
 
 
 
@@ -137,9 +116,7 @@ def main(args):
     if args.labelsFileName: 
         print('[make_lmdb]: loading labels file: %s' % args.labelsFileName) 
         Y = emlib.load_cube(args.labelsFileName, np.float32)
-        # remap so that class label 0 is non-membrane and 1 is membrane
-        Y[Y==0] = 1; Y[Y==255] = 0; 
-        Y = fix_class_labels(Y, eval(args.omitLabels))
+        Y = emlib.fix_class_labels(Y, eval(args.omitLabels))
         assert(Y.shape == X.shape)
     else:
         print('[make_lmdb]: no labels file; assuming this is a test volume')
@@ -159,17 +136,10 @@ def main(args):
         Y = Y[sliceIdx, :, :]
     X = X.astype(np.uint8)  # critical!! otherwise, Caffe just flails...
 
-    # any pixels that are too bright will be ignored.
-    if args.maxBrightness < sys.maxint:
-        nTooBright = np.sum(X > args.maxBrightness)
-        Y[X > args.maxBrightness] = -1
-    else:
-        nTooBright = 0
-
     print('[make_lmdb]: EM volume shape: %s' % str(X.shape))
     print('[make_lmdb]: yAll is %s' % np.unique(Y))
     print('[make_lmdb]: %0.2f%% pixels will be omitted' % (100.0*np.sum(Y==-1)/numel(Y)))
-    print('[make_lmdb]:   (%0.2f%% of these were too bright)' % (100.0*nTooBright/numel(Y)))
+    print('[make_lmdb]: writing results to: %s' % args.outDir)
     print('')
     sys.stdout.flush()
 
