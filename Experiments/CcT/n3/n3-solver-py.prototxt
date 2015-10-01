@@ -1,0 +1,36 @@
+
+# The train/test net protocol buffer definition
+net: "./n3/n3-net-py.prototxt"
+
+#--------------------------------------------------
+# test_iter     := how many forward passes the test should carry out.
+# test_interval := how frequently to test (every N training iterations)
+#--------------------------------------------------
+test_iter: 1000  #  100000 / 100 = 1000
+test_interval: 500
+
+#--------------------------------------------------
+# Learning rate parameters
+#--------------------------------------------------
+lr_policy: "step"   # vs. "inv"
+# The maximum number of iterations
+max_iter: 60000
+stepsize: 20000
+
+base_lr: 0.001
+momentum: 0.9
+weight_decay: 0.0005
+
+# gamma: 0.0001
+# power: 0.75
+
+#--------------------------------------------------
+#--------------------------------------------------
+# Display every 100 iterations
+display: 100
+# snapshot intermediate results
+snapshot: 2000
+
+snapshot_prefix: "./n3/"
+# solver mode: CPU or GPU
+# solver_mode: CPU
