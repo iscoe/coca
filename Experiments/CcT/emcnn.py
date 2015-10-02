@@ -550,7 +550,7 @@ def predict(net, X, Mask, batchDim):
         elapsed = time.time() - tic
 
         if (lastChatter+2) < (elapsed/60.):  # notify progress every 2 min
-            lastChatter = elapsed
+            lastChatter = elapsed/60.
             print('[emCNN]: elapsed=%0.2f min; %0.2f%% complete' % (elapsed/60., 100.*epochPct))
 
     # done
