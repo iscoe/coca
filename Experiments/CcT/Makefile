@@ -43,22 +43,26 @@
 # PARAMETERS
 #
 # The parameters in this section you may want to change in order to alter
-# the experimental setup or match the setup of your local system.
+# the experimental setup and match the setup of your local system.
 #-------------------------------------------------------------------------------
 
 # Specify where pycaffe is located on your system
 PYCAFFE=/home/pekalmj1/Apps/caffe/python
 
-
-# Specify which CNN model to use.
-# For now, the main options are 'lenet' or 'n3'
+# Experiment parameters related to the CNN.
+# (primarily which network to use)
 CNN=lenet
 SOLVER=$(CNN)/$(CNN)-solver.prototxt
 NET=$(CNN)/$(CNN)-net.prototxt
 DEPLOY=$(CNN)/$(CNN)-deploy.prototxt
 
-
-# The maximum number of tiles to extract
+# Experiment parameters related to the data set.
+# Specify the train/valid/test breakdown.
+# Also, when subsampling, how many tiles to use.
+EXPERIMENT=ISBI_Train20
+S_TRAIN="range(0,20)"
+S_VALID="range(20,30)"
+S_TEST="[]"
 N_TILES=200000
 
 # Specify which model to use in timing experiments.
@@ -76,10 +80,9 @@ CCT_MODEL=trained_model.bin.25-09-2015-04-46-54
 BASE_DIR=../..
 
 # Different ways to run python.
-# (we need PyCaffe and emlib.py in the PYTHONPATH)
+# (we always need PyCaffe and emlib.py in the PYTHONPATH)
 PY=PYTHONPATH=$(PYCAFFE):$(BASE_DIR) python
 PYNOHUP=PYTHONPATH=$(PYCAFFE):$(BASE_DIR) nohup python
-# for profiling (optional)
 PYPROF=PYTHONPATH=$(PYCAFFE):.. python -m cProfile -s cumtime
 
 
@@ -88,6 +91,9 @@ NITERS=100
 
 TAR=CcT-experiment.tar
 
+# You probably want to override this from the command line.
+# Note that on our cluster, it is probably a good idea to
+# avoid using gpu 0
 GPU=1
 
 
@@ -116,15 +122,24 @@ tar :
 #-------------------------------------------------------------------------------
 
 data:
-	$(PY) preprocess.py -X ./ISBI2012/train-volume.tif -Y ./ISBI2012/train-labels.tif
+	$(PY) preprocess.py -X ./ISBI2012/train-volume.tif -Y \
+		./ISBI2012/train-labels.tif \
+		--train-slices $(S_TRAIN) \
+		--valid-slices $(S_VALID) \
+		--test-slices $(S_TEST) \
+		--out-dir $(EXPERIMENT)
+
 	$(PY) $(BASE_DIR)/Tools/make_lmdb.py \
-		-X ./ISBI2012/Xtrain.npy -Y ./ISBI2012/Ytrain.npy \
+		-X $(EXPERIMENT)/ISBI2012/Xtrain.npy \
+		-Y $(EXPERIMENT)/ISBI2012/Ytrain.npy \
 		--num-examples $(N_TILES) \
-		-o ./train.lmdb
+		-o $(EXPERIMENT)/train.lmdb
+
 	$(PY) $(BASE_DIR)/Tools/make_lmdb.py \
-		-X ./ISBI2012/Xvalid.npy -Y ./ISBI2012/Yvalid.npy \
+		-X $(EXPERIMENT)/ISBI2012/Xvalid.npy \
+		-Y $(EXPERIMENT)/ISBI2012/Yvalid.npy \
 		--num-examples $(N_TILES) \
-		-o ./valid.lmdb
+		-o $(EXPERIMENT)/valid.lmdb
 
 
 # Deletes data preprocessing
