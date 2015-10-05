@@ -130,6 +130,7 @@ def _xform_minibatch(X, rotate=False):
         X2[...] = X[...]               # no transformation
 
     if rotate:
+        raise RuntimeError('not working (change X2 to X below)')
         angle = np.random.rand() * 360.0
         fillColor = np.max(X)
         X2 = scipy.ndimage.rotate(X2, angle, axes=(2,3), reshape=False, cval=fillColor)
